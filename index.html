@@ -1,0 +1,923 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendamento Excellington</title>
+    <style>
+        :root {
+            --primary: #2e7d32;
+            --primary-light: #4caf50;
+            --bg-soft: #e8f5e9;
+            --bg-card: #ffffff;
+            --text-main: #1b5e20;
+            --text-muted: #558b2f;
+            --accent: #81c784;
+            --danger: #d32f2f;
+            --warning: #fbc02d;
+            --border: #c8e6c9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-soft);
+            color: var(--text-main);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(46, 125, 50, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
+        h1, h2, h3 {
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+
+        p, label {
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: #fafafa;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            background: #fff;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            width: 100%;
+            transition: background 0.2s;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background-color: var(--primary-light);
+        }
+
+        button.secondary {
+            background-color: var(--accent);
+            color: #1b5e20;
+        }
+
+        button.secondary:hover {
+            background-color: #a5d6a7;
+        }
+
+        button.danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        button.danger:hover {
+            background-color: #ef5350;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 15px;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 2px solid var(--primary);
+        }
+
+        /* Tabs / Navigation */
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .nav-tabs button {
+            flex: 1;
+            min-width: 120px;
+            margin-bottom: 0;
+            background: var(--border);
+            color: var(--text-main);
+        }
+
+        .nav-tabs button.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Calendar & Slots */
+        .slot-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .slot-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #fafafa;
+        }
+
+        .slot-item.booked {
+            background: #e8f5e9;
+            border-color: var(--accent);
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .badge.free {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .badge.busy {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+
+        .actions-row {
+            display: flex;
+            gap: 5px;
+        }
+
+        .actions-row button {
+            padding: 5px 10px;
+            font-size: 0.85rem;
+            margin-bottom: 0;
+            width: auto;
+        }
+
+        .backup-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px dashed var(--border);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="termsModal" class="modal">
+        <div class="modal-content">
+            <h2>Termos de Uso e Responsabilidade</h2>
+            <p>Bem-vindo ao <strong>Agendamento Excellington</strong>!</p>
+            <p>Este aplicativo armazena todos os seus dados de agendamentos e configurações exclusivamente **no armazenamento interno (localStorage) do seu dispositivo** atual.</p>
+            <p style="color: var(--danger); font-weight: bold;">⚠️ ATENÇÃO CRUCIAL:</p>
+            <p>Se você limpar o histórico, os dados de navegação, desinstalar o navegador sem backup ou usar ferramentas de limpeza agressivas, <strong>todos os seus dados serão permanentemente apagados</strong>.</p>
+            <p>Recomendamos realizar o backup regular dos seus dados utilizando o botão de exportar dados no painel de configurações.</p>
+            <p>O uso contínuo requer uma contribuição mensal voluntária via Pix para manutenção do software.</p>
+            <button onclick="acceptTerms()">Li e Concordo com os Termos</button>
+        </div>
+    </div>
+
+    <div id="licenseModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Renovação Mensal Pix</h2>
+            
+            <div style="background: var(--bg-soft); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border);">
+                <p><strong>Nome do Estabelecimento:</strong> <span id="licenseEstName">-</span></p>
+                <p><strong>Data de Expiração:</strong> <span id="licenseExpDate">-</span></p>
+            </div>
+
+            <p>Faça uma doação de qualquer valor via Pix utilizando a chave fixa abaixo:</p>
+            <div style="background: var(--bg-soft); padding: 10px; border-radius: 6px; margin-bottom: 10px; text-align: center; font-weight: bold;">
+                Chave Pix: <strong>16250510850</strong>
+            </div>
+            <button class="secondary" onclick="copyPixKey()">Copiar Chave Pix</button>
+            
+            <p style="margin-top: 10px; font-size: 0.9rem;" id="licenseInstructionText">
+                Após realizar o Pix, envie o comprovante para o e-mail excellington@gmail.com, juntamente com o nome do estabelecimento e a data de expiração, conforme acima.
+            </p>
+
+            <label for="activationCodeInput" style="margin-top: 15px; display:block;">Digite o Código de Liberação (10 dígitos):</label>
+            <input type="text" id="activationCodeInput" placeholder="Ex: 8678316375" maxlength="15">
+            <button onclick="validateLicenseCode()">Ativar Aplicativo</button>
+            <button class="secondary" onclick="closeLicenseModalIfValid()">Fechar / Continuar</button>
+        </div>
+    </div>
+
+    <div id="appointmentModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="modalSlotTitle">Novo Agendamento</h2>
+            
+            <label>Data do Agendamento:</label>
+            <input type="date" id="modalAppointmentDate" onchange="updateModalTimeSlots()">
+
+            <label>Horário Disponível / Selecionado:</label>
+            <select id="modalTimeSlotSelect">
+                </select>
+            
+            <label>Nome do Cliente / Paciente:</label>
+            <input type="text" id="clientName" placeholder="Nome completo">
+            
+            <label>Telefone para Contato:</label>
+            <input type="tel" id="clientPhone" placeholder="(XX) 9XXXX-XXXX">
+            
+            <label>Forma de Pagamento:</label>
+            <select id="paymentMethod">
+                <option value="Dinheiro">Dinheiro</option>
+                <option value="Cartão">Cartão</option>
+                <option value="Pix">Pix</option>
+                <option value="Convênio">Convênio</option>
+            </select>
+            
+            <label>Dados Complementares / Observações:</label>
+            <textarea id="clientNotes" placeholder="Detalhes do procedimento, exames, etc."></textarea>
+            
+            <div style="display: flex; gap: 10px;">
+                <button onclick="saveAppointment()">Salvar Agendamento</button>
+                <button class="secondary" onclick="closeAppointmentModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>
+            <span id="secretTrigger" style="cursor: pointer;" title="Clique 5 vezes para testar a doação">💚</span> 
+            Agendamento Excellington
+        </h1>
+        <p id="estSubtitle" style="color: var(--text-muted); font-weight: 600;">Gerenciamento Inteligente e Local</p>
+
+        <div class="nav-tabs" style="margin-top: 15px;">
+            <button id="tabBtnSchedule" class="active" onclick="switchTab('schedule')">Agenda</button>
+            <button id="tabBtnSetup" onclick="switchTab('setup')">Estabelecimento</button>
+            <button id="tabBtnClients" onclick="switchTab('clients')">Contatos Salvos</button>
+        </div>
+
+        <div id="sectionSchedule">
+            <h3>Selecione a Data</h3>
+            <input type="date" id="calendarDateInput" onchange="loadDaySchedule()">
+            
+            <div style="margin-top: 15px;">
+                <h3 id="selectedDateTitle">Horários do Dia</h3>
+                <div id="slotsContainer" class="slot-list">
+                    </div>
+            </div>
+        </div>
+
+        <div id="sectionSetup" class="hidden">
+            <h3>Configurações do Estabelecimento</h3>
+            
+            <label>Nome do Estabelecimento:</label>
+            <input type="text" id="setupName" placeholder="Ex: Clínica Excellington">
+
+            <label>Início do Expediente:</label>
+            <input type="time" id="setupStart" value="08:00">
+
+            <label>Término do Expediente:</label>
+            <input type="time" id="setupEnd" value="18:00">
+
+            <label>Início do Intervalo de Refeição (Almoço):</label>
+            <input type="time" id="setupMealStart" value="12:00">
+
+            <label>Término do Intervalo de Refeição:</label>
+            <input type="time" id="setupMealEnd" value="13:00">
+
+            <label>Tempo Médio de Atendimento (minutos):</label>
+            <input type="number" id="setupDuration" value="30" min="5" step="5">
+
+            <button onclick="saveEstablishmentSettings()">Salvar Configurações</button>
+
+            <div class="backup-section">
+                <h3>Backup e Segurança de Dados</h3>
+                <p>Como os dados ficam salvos apenas neste aparelho, faça backups periódicos:</p>
+                <button class="secondary" onclick="exportBackup()">Exportar Dados (Backup)</button>
+                <label style="margin-top: 10px; display:block;">Restaurar de arquivo:</label>
+                <input type="file" id="importFile" accept=".json" onchange="importBackup(event)">
+            </div>
+        </div>
+
+        <div id="sectionClients" class="hidden">
+            <h3>Lista de Clientes / Pacientes Recentes</h3>
+            <p>Estes contatos foram salvos automaticamente para facilitar novos agendamentos.</p>
+            
+            <label for="clientSearchInput" style="margin-top: 15px;">Pesquisar Contato:</label>
+            <input type="text" id="clientSearchInput" placeholder="Digite o nome do cliente..." oninput="renderClientsList()">
+
+            <div id="clientsContainer" class="slot-list" style="margin-top: 10px;">
+                </div>
+        </div>
+
+        <div style="margin-top: 25px; border-top: 1px solid var(--border); padding-top: 15px;">
+            <button class="danger" onclick="exitApp()">Sair / Fechar Aplicativo</button>
+        </div>
+    </div>
+
+    <script>
+        const FIXED_PIX_KEY = '16250510850';
+        const FIXED_SUPPORT_EMAIL = 'excellington@gmail.com';
+
+        let appData = {
+            termsAccepted: false,
+            licenseExpires: '',
+            establishment: {
+                name: 'Estabelecimento Excellington',
+                start: '08:00',
+                end: '18:00',
+                mealStart: '12:00',
+                mealEnd: '13:00',
+                duration: 30,
+                contact: FIXED_SUPPORT_EMAIL
+            },
+            appointments: {}, 
+            clients: [] 
+        };
+
+        let currentEditing = {
+            isEdit: false,
+            oldDate: '',
+            oldTime: ''
+        };
+
+        function initApp() {
+            const saved = localStorage.getItem('excellington_data');
+            if (saved) {
+                try {
+                    appData = JSON.parse(saved);
+                } catch(e) {
+                    console.error("Erro ao carregar dados locais");
+                }
+            }
+
+            appData.establishment.pixKey = FIXED_PIX_KEY;
+            appData.establishment.contact = FIXED_SUPPORT_EMAIL;
+
+            if (!appData.termsAccepted) {
+                document.getElementById('termsModal').classList.remove('hidden');
+            } else {
+                checkLicense();
+            }
+
+            loadEstablishmentUI();
+            
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('calendarDateInput').value = todayStr;
+            loadDaySchedule();
+
+            setupSecretTrigger();
+        }
+
+        function saveData() {
+            appData.establishment.pixKey = FIXED_PIX_KEY;
+            appData.establishment.contact = FIXED_SUPPORT_EMAIL;
+            localStorage.setItem('excellington_data', JSON.stringify(appData));
+        }
+
+        function setupSecretTrigger() {
+            let clickCount = 0;
+            let clickTimer = null;
+            const trigger = document.getElementById('secretTrigger');
+            
+            trigger.addEventListener('click', () => {
+                clickCount++;
+                clearTimeout(clickTimer);
+                
+                if (clickCount >= 5) {
+                    clickCount = 0;
+                    showLicenseModal();
+                } else {
+                    clickTimer = setTimeout(() => {
+                        clickCount = 0;
+                    }, 1000);
+                }
+            });
+        }
+
+        function acceptTerms() {
+            appData.termsAccepted = true;
+            const expDate = new Date();
+            expDate.setDate(expDate.getDate() + 30);
+            appData.licenseExpires = expDate.toISOString().split('T')[0];
+            saveData();
+            document.getElementById('termsModal').classList.add('hidden');
+            checkLicense();
+        }
+
+        function checkLicense() {
+            if (!appData.licenseExpires) {
+                showLicenseModal();
+                return;
+            }
+            const today = new Date().toISOString().split('T')[0];
+            if (today > appData.licenseExpires) {
+                showLicenseModal();
+            }
+        }
+
+        function showLicenseModal() {
+            document.getElementById('licenseEstName').innerText = appData.establishment.name || "Estabelecimento Excellington";
+            
+            let expFormatted = "-";
+            if (appData.licenseExpires) {
+                const parts = appData.licenseExpires.split('-');
+                if (parts.length === 3) {
+                    expFormatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                }
+            }
+            document.getElementById('licenseExpDate').innerText = expFormatted;
+
+            document.getElementById('licenseModal').classList.remove('hidden');
+        }
+
+        function closeLicenseModalIfValid() {
+            const today = new Date().toISOString().split('T')[0];
+            if (appData.licenseExpires && today <= appData.licenseExpires) {
+                document.getElementById('licenseModal').classList.add('hidden');
+            } else {
+                alert("Sua licença está expirada. É necessário inserir um código de liberação válido.");
+            }
+        }
+
+        function copyPixKey() {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(FIXED_PIX_KEY).then(() => {
+                    alert("Chave Pix copiada com sucesso: " + FIXED_PIX_KEY);
+                }).catch(err => {
+                    fallbackCopy(FIXED_PIX_KEY, "Chave Pix copiada: " + FIXED_PIX_KEY);
+                });
+            } else {
+                fallbackCopy(FIXED_PIX_KEY, "Chave Pix copiada: " + FIXED_PIX_KEY);
+            }
+        }
+
+        function fallbackCopy(text, successMsg) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    alert(successMsg);
+                } else {
+                    alert("Chave Pix: " + text);
+                }
+            } catch (err) {
+                alert("Chave Pix: " + text);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function calculateExpectedCode(estName, expDateStr) {
+            if (!expDateStr) return "";
+            const parts = expDateStr.split('-');
+            if (parts.length !== 3) return "";
+            
+            const ano = parseInt(parts[0], 10);
+            const mes = parseInt(parts[1], 10);
+            const dia = parseInt(parts[2], 10);
+
+            const nomeSemEspacos = estName.replace(/\s+/g, '');
+            const qtdChars = nomeSemEspacos.length;
+
+            const baseSum = qtdChars + dia + mes + ano;
+            const cubeValue = Math.pow(baseSum, 3);
+
+            return String(cubeValue);
+        }
+
+        function validateLicenseCode() {
+            const inputCode = document.getElementById('activationCodeInput').value.trim();
+            
+            if (!appData.licenseExpires) {
+                alert("Data de expiração não definida.");
+                return;
+            }
+
+            const expectedCode = calculateExpectedCode(appData.establishment.name, appData.licenseExpires);
+
+            if (inputCode === expectedCode && inputCode !== "") {
+                const currentExp = new Date(appData.licenseExpires);
+                const today = new Date();
+                let baseDate = currentExp > today ? currentExp : today;
+                
+                baseDate.setDate(baseDate.getDate() + 30);
+                appData.licenseExpires = baseDate.toISOString().split('T')[0];
+                saveData();
+
+                alert("Aplicativo ativado com sucesso por mais 30 dias!");
+                document.getElementById('activationCodeInput').value = '';
+                document.getElementById('licenseModal').classList.add('hidden');
+            } else {
+                alert("Código de liberação inválido. Verifique se digitou corretamente o código gerado.");
+            }
+        }
+
+        function switchTab(tabName) {
+            document.getElementById('sectionSchedule').classList.add('hidden');
+            document.getElementById('sectionSetup').classList.add('hidden');
+            document.getElementById('sectionClients').classList.add('hidden');
+
+            document.getElementById('tabBtnSchedule').classList.remove('active');
+            document.getElementById('tabBtnSetup').classList.remove('active');
+            document.getElementById('tabBtnClients').classList.remove('active');
+
+            if (tabName === 'schedule') {
+                document.getElementById('sectionSchedule').classList.remove('hidden');
+                document.getElementById('tabBtnSchedule').classList.add('active');
+                loadDaySchedule();
+            } else if (tabName === 'setup') {
+                document.getElementById('sectionSetup').classList.remove('hidden');
+                document.getElementById('tabBtnSetup').classList.add('active');
+            } else if (tabName === 'clients') {
+                document.getElementById('sectionClients').classList.remove('hidden');
+                document.getElementById('tabBtnClients').classList.add('active');
+                renderClientsList();
+            }
+        }
+
+        function loadEstablishmentUI() {
+            document.getElementById('setupName').value = appData.establishment.name;
+            document.getElementById('setupStart').value = appData.establishment.start;
+            document.getElementById('setupEnd').value = appData.establishment.end;
+            document.getElementById('setupMealStart').value = appData.establishment.mealStart;
+            document.getElementById('setupMealEnd').value = appData.establishment.mealEnd;
+            document.getElementById('setupDuration').value = appData.establishment.duration;
+            
+            document.getElementById('estSubtitle').innerText = appData.establishment.name;
+        }
+
+        function saveEstablishmentSettings() {
+            appData.establishment.name = document.getElementById('setupName').value;
+            appData.establishment.start = document.getElementById('setupStart').value;
+            appData.establishment.end = document.getElementById('setupEnd').value;
+            appData.establishment.mealStart = document.getElementById('setupMealStart').value;
+            appData.establishment.mealEnd = document.getElementById('setupMealEnd').value;
+            appData.establishment.duration = parseInt(document.getElementById('setupDuration').value) || 30;
+            appData.establishment.contact = FIXED_SUPPORT_EMAIL;
+            appData.establishment.pixKey = FIXED_PIX_KEY;
+
+            saveData();
+            loadEstablishmentUI();
+            alert("Configurações salvas com sucesso!");
+            switchTab('schedule');
+        }
+
+        function loadDaySchedule() {
+            const dateVal = document.getElementById('calendarDateInput').value;
+            if (!dateVal) return;
+
+            document.getElementById('selectedDateTitle').innerText = `Horários para ${dateVal.split('-').reverse().join('/')}`;
+            const container = document.getElementById('slotsContainer');
+            container.innerHTML = '';
+
+            const est = appData.establishment;
+            const slots = generateTimeSlots(est.start, est.end, est.mealStart, est.mealEnd, est.duration);
+            
+            const dayAppointments = appData.appointments[dateVal] || {};
+
+            slots.forEach(time => {
+                const slotDiv = document.createElement('div');
+                const isBooked = dayAppointments[time] !== undefined;
+                
+                slotDiv.className = `slot-item ${isBooked ? 'booked' : ''}`;
+
+                if (isBooked) {
+                    const appt = dayAppointments[time];
+                    slotDiv.innerHTML = `
+                        <div>
+                            <strong>${time}</strong> - ${appt.name} (${appt.phone})<br>
+                            <small>Pgto: ${appt.payment} | Obs: ${appt.notes || 'Nenhuma'}</small>
+                        </div>
+                        <div class="actions-row">
+                            <button class="secondary" onclick="sendSMS('${appt.phone}', '${dateVal}', '${time}')">SMS</button>
+                            <button onclick="openAppointmentModal('${dateVal}', '${time}', true)">Editar</button>
+                            <button class="danger" onclick="deleteAppointment('${dateVal}', '${time}')">Excluir</button>
+                        </div>
+                    `;
+                } else {
+                    slotDiv.innerHTML = `
+                        <div>
+                            <strong>${time}</strong> <span class="badge free">Disponível</span>
+                        </div>
+                        <div class="actions-row">
+                            <button onclick="openAppointmentModal('${dateVal}', '${time}', false)">Agendar</button>
+                        </div>
+                    `;
+                }
+                container.appendChild(slotDiv);
+            });
+        }
+
+        function generateTimeSlots(start, end, mealStart, mealEnd, duration) {
+            const slots = [];
+            let current = timeToMinutes(start);
+            const endTime = timeToMinutes(end);
+            const mStart = timeToMinutes(mealStart);
+            const mEnd = timeToMinutes(mealEnd);
+
+            while (current + duration <= endTime) {
+                if (!(current >= mStart && current < mEnd)) {
+                    slots.push(minutesToTime(current));
+                }
+                current += duration;
+            }
+            return slots;
+        }
+
+        function timeToMinutes(timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        function minutesToTime(minutes) {
+            const h = String(Math.floor(minutes / 60)).padStart(2, '0');
+            const m = String(minutes % 60).padStart(2, '0');
+            return `${h}:${m}`;
+        }
+
+        function updateModalTimeSlots(preselectTime = '') {
+            const dateVal = document.getElementById('modalAppointmentDate').value;
+            const select = document.getElementById('modalTimeSlotSelect');
+            select.innerHTML = '';
+
+            if (!dateVal) return;
+
+            const est = appData.establishment;
+            const slots = generateTimeSlots(est.start, est.end, est.mealStart, est.mealEnd, est.duration);
+            const dayAppts = appData.appointments[dateVal] || {};
+
+            slots.forEach(time => {
+                const isBooked = dayAppts[time] !== undefined;
+                const isCurrentSlot = currentEditing.isEdit && currentEditing.oldDate === dateVal && currentEditing.oldTime === time;
+
+                if (!isBooked || isCurrentSlot) {
+                    const opt = document.createElement('option');
+                    opt.value = time;
+                    opt.textContent = time + (isCurrentSlot ? ' (Horário Atual)' : '');
+                    select.appendChild(opt);
+                }
+            });
+
+            if (select.options.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = "";
+                opt.textContent = "Nenhum horário disponível nesta data";
+                select.appendChild(opt);
+            } else if (preselectTime) {
+                select.value = preselectTime;
+            }
+        }
+
+        function openAppointmentModal(date, time, isEdit) {
+            currentEditing = { isEdit, oldDate: date, oldTime: time };
+            
+            document.getElementById('modalSlotTitle').innerText = `${isEdit ? 'Editar' : 'Novo'} Agendamento`;
+            document.getElementById('modalAppointmentDate').value = date;
+            
+            updateModalTimeSlots(time);
+            
+            if (isEdit && appData.appointments[date] && appData.appointments[date][time]) {
+                const appt = appData.appointments[date][time];
+                document.getElementById('clientName').value = appt.name;
+                document.getElementById('clientPhone').value = appt.phone;
+                document.getElementById('paymentMethod').value = appt.payment;
+                document.getElementById('clientNotes').value = appt.notes;
+            } else if (!isEdit) {
+                document.getElementById('clientName').value = '';
+                document.getElementById('clientPhone').value = '';
+                document.getElementById('paymentMethod').value = 'Dinheiro';
+                document.getElementById('clientNotes').value = '';
+            }
+
+            document.getElementById('appointmentModal').classList.remove('hidden');
+        }
+
+        function closeAppointmentModal() {
+            document.getElementById('appointmentModal').classList.add('hidden');
+        }
+
+        function saveAppointment() {
+            const newDate = document.getElementById('modalAppointmentDate').value;
+            const newTime = document.getElementById('modalTimeSlotSelect').value;
+            const name = document.getElementById('clientName').value.trim();
+            const phone = document.getElementById('clientPhone').value.trim();
+            const payment = document.getElementById('paymentMethod').value;
+            const notes = document.getElementById('clientNotes').value.trim();
+
+            if (!newDate || !newTime) {
+                alert("Por favor, selecione uma data e um horário válido.");
+                return;
+            }
+
+            if (!name || !phone) {
+                alert("Por favor, preencha o nome e o telefone do cliente/paciente.");
+                return;
+            }
+
+            if (currentEditing.isEdit && currentEditing.oldDate && currentEditing.oldTime) {
+                if (appData.appointments[currentEditing.oldDate] && appData.appointments[currentEditing.oldDate][currentEditing.oldTime]) {
+                    delete appData.appointments[currentEditing.oldDate][currentEditing.oldTime];
+                    if (Object.keys(appData.appointments[currentEditing.oldDate]).length === 0) {
+                        delete appData.appointments[currentEditing.oldDate];
+                    }
+                }
+            }
+
+            if (!appData.appointments[newDate]) {
+                appData.appointments[newDate] = {};
+            }
+
+            appData.appointments[newDate][newTime] = { name, phone, payment, notes };
+
+            if (!appData.clients.some(c => c.phone === phone)) {
+                appData.clients.push({ name, phone });
+            } else {
+                const clientObj = appData.clients.find(c => c.phone === phone);
+                if (clientObj) clientObj.name = name;
+            }
+
+            saveData();
+            closeAppointmentModal();
+            
+            document.getElementById('calendarDateInput').value = newDate;
+            loadDaySchedule();
+            alert("Agendamento salvo com sucesso!");
+        }
+
+        function deleteAppointment(date, time) {
+            if (confirm("Deseja realmente excluir este agendamento?")) {
+                if (appData.appointments[date] && appData.appointments[date][time]) {
+                    delete appData.appointments[date][time];
+                    saveData();
+                    loadDaySchedule();
+                }
+            }
+        }
+
+        function sendSMS(phone, date, time) {
+            const estName = appData.establishment.name;
+            const formattedDate = date.split('-').reverse().join('/');
+            const message = `Olá! Confirmando seu agendamento em ${estName} para o dia ${formattedDate} às ${time}. Agradecemos a preferência!`;
+            const smsUrl = `sms:${phone}?body=${encodeURIComponent(message)}`;
+            window.location.href = smsUrl;
+        }
+
+        function renderClientsList() {
+            const container = document.getElementById('clientsContainer');
+            container.innerHTML = '';
+
+            const searchInput = document.getElementById('clientSearchInput');
+            const filter = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+            const filteredClients = appData.clients.filter(client => 
+                client.name.toLowerCase().includes(filter) || client.phone.includes(filter)
+            );
+
+            if (filteredClients.length === 0) {
+                container.innerHTML = '<p>Nenhum contato encontrado.</p>';
+                return;
+            }
+
+            filteredClients.forEach((client) => {
+                const originalIndex = appData.clients.findIndex(c => c.phone === client.phone);
+
+                const div = document.createElement('div');
+                div.className = 'slot-item';
+                div.innerHTML = `
+                    <div>
+                        <strong>${client.name}</strong><br>
+                        <small>Tel: ${client.phone}</small>
+                    </div>
+                    <div class="actions-row">
+                        <button class="secondary" onclick="quickBookClient('${client.name}', '${client.phone}')">Agendar Rápido</button>
+                        <button class="danger" onclick="deleteClient(${originalIndex})">Excluir</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function quickBookClient(name, phone) {
+            switchTab('schedule');
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('calendarDateInput').value = todayStr;
+            
+            openAppointmentModal(todayStr, '', false);
+            
+            document.getElementById('clientName').value = name;
+            document.getElementById('clientPhone').value = phone;
+        }
+
+        function deleteClient(index) {
+            if (confirm("Deseja remover este contato da lista?")) {
+                appData.clients.splice(index, 1);
+                saveData();
+                renderClientsList();
+            }
+        }
+
+        function exportBackup() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `backup_excellington_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importBackup(event) {
+            const fileReader = new FileReader();
+            if (event.target.files[0]) {
+                fileReader.readAsText(event.target.files[0], "UTF-8");
+                fileReader.onload = function (e) {
+                    try {
+                        const parsed = JSON.parse(e.target.result);
+                        if (parsed && parsed.establishment) {
+                            appData = parsed;
+                            saveData();
+                            initApp();
+                            alert("Backup restaurado com sucesso!");
+                        } else {
+                            alert("Arquivo de backup inválido.");
+                        }
+                    } catch (error) {
+                        alert("Erro ao ler o arquivo JSON.");
+                    }
+                }
+            }
+        }
+
+        function exitApp() {
+            if (confirm("Deseja realmente sair e fechar o aplicativo?")) {
+                window.close();
+                setTimeout(() => {
+                    alert("Se o navegador não fechou automaticamente por razões de segurança, você pode fechar esta aba com tranquilidade.");
+                }, 300);
+            }
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
+
