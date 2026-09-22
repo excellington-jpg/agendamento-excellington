@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -202,6 +202,7 @@
         .actions-row {
             display: flex;
             gap: 5px;
+            flex-wrap: wrap;
         }
 
         .actions-row button {
@@ -224,7 +225,7 @@
         <div class="modal-content">
             <h2>Termos de Uso e Responsabilidade</h2>
             <p>Bem-vindo ao <strong>Agendamento Excellington</strong>!</p>
-            <p>Este aplicativo armazena todos os seus dados de agendamentos e configurações exclusivamente **no armazenamento interno (localStorage) do seu dispositivo** atual.</p>
+            <p>Este aplicativo armazena todos os seus dados de agendamentos e configurações exclusivamente <strong>no armazenamento interno (localStorage) do seu dispositivo atual</strong>.</p>
             <p style="color: var(--danger); font-weight: bold;">⚠️ ATENÇÃO CRUCIAL:</p>
             <p>Se você limpar o histórico, os dados de navegação, desinstalar o navegador sem backup ou usar ferramentas de limpeza agressivas, <strong>todos os seus dados serão permanentemente apagados</strong>.</p>
             <p>Recomendamos realizar o backup regular dos seus dados utilizando o botão de exportar dados no painel de configurações.</p>
@@ -267,8 +268,7 @@
             <input type="date" id="modalAppointmentDate" onchange="updateModalTimeSlots()">
 
             <label>Horário Disponível / Selecionado:</label>
-            <select id="modalTimeSlotSelect">
-                </select>
+            <select id="modalTimeSlotSelect"></select>
             
             <label>Nome do Cliente / Paciente:</label>
             <input type="text" id="clientName" placeholder="Nome completo">
@@ -299,7 +299,10 @@
             <span id="secretTrigger" style="cursor: pointer;" title="Clique 5 vezes para testar a doação">💚</span> 
             Agendamento Excellington
         </h1>
-        <p id="estSubtitle" style="color: var(--text-muted); font-weight: 600;">Gerenciamento Inteligente e Local</p>
+
+        <p id="estSubtitle" style="color: var(--text-muted); font-weight: 600;">
+            Gerenciamento Inteligente e Local
+        </p>
 
         <div class="nav-tabs" style="margin-top: 15px;">
             <button id="tabBtnSchedule" class="active" onclick="switchTab('schedule')">Agenda</button>
@@ -313,8 +316,7 @@
             
             <div style="margin-top: 15px;">
                 <h3 id="selectedDateTitle">Horários do Dia</h3>
-                <div id="slotsContainer" class="slot-list">
-                    </div>
+                <div id="slotsContainer" class="slot-list"></div>
             </div>
         </div>
 
@@ -339,6 +341,20 @@
             <label>Tempo Médio de Atendimento (minutos):</label>
             <input type="number" id="setupDuration" value="30" min="5" step="5">
 
+            <!-- NOVA CONFIGURAÇÃO -->
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:5px;">
+                <input type="checkbox" id="setupMultiBooking" style="width:auto; margin:0;">
+                Atende mais de um cliente no mesmo horário.
+            </label>
+
+            <div id="multiBookingOptions" class="hidden" style="background:var(--bg-soft); padding:12px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border);">
+                <label>Número máximo de clientes por horário:</label>
+                <input type="number" id="setupMaxClients" value="5" min="2" max="50" step="1">
+                <small>
+                    Ex.: clínicas de fisioterapia podem configurar 5 clientes no mesmo horário.
+                </small>
+            </div>
+
             <button onclick="saveEstablishmentSettings()">Salvar Configurações</button>
 
             <div class="backup-section">
@@ -357,8 +373,7 @@
             <label for="clientSearchInput" style="margin-top: 15px;">Pesquisar Contato:</label>
             <input type="text" id="clientSearchInput" placeholder="Digite o nome do cliente..." oninput="renderClientsList()">
 
-            <div id="clientsContainer" class="slot-list" style="margin-top: 10px;">
-                </div>
+            <div id="clientsContainer" class="slot-list" style="margin-top: 10px;"></div>
         </div>
 
         <div style="margin-top: 25px; border-top: 1px solid var(--border); padding-top: 15px;">
@@ -373,6 +388,7 @@
         let appData = {
             termsAccepted: false,
             licenseExpires: '',
+
             establishment: {
                 name: 'Estabelecimento Excellington',
                 start: '08:00',
@@ -380,8 +396,14 @@
                 mealStart: '12:00',
                 mealEnd: '13:00',
                 duration: 30,
+
+                // NOVAS CONFIGURAÇÕES
+                multiBooking: false,
+                maxClientsPerSlot: 5,
+
                 contact: FIXED_SUPPORT_EMAIL
             },
+
             appointments: {}, 
             clients: [] 
         };
@@ -389,11 +411,14 @@
         let currentEditing = {
             isEdit: false,
             oldDate: '',
-            oldTime: ''
+            oldTime: '',
+            oldIndex: -1
         };
 
         function initApp() {
+
             const saved = localStorage.getItem('excellington_data');
+
             if (saved) {
                 try {
                     appData = JSON.parse(saved);
@@ -402,43 +427,108 @@
                 }
             }
 
+            /*
+             * Compatibilidade com versões anteriores
+             */
+            if (!appData.establishment) {
+                appData.establishment = {};
+            }
+
+            if (typeof appData.establishment.multiBooking !== 'boolean') {
+                appData.establishment.multiBooking = false;
+            }
+
+            if (!appData.establishment.maxClientsPerSlot) {
+                appData.establishment.maxClientsPerSlot = 5;
+            }
+
+            if (!appData.appointments) {
+                appData.appointments = {};
+            }
+
+            if (!appData.clients) {
+                appData.clients = [];
+            }
+
+            /*
+             * Converte automaticamente os agendamentos antigos,
+             * que tinham apenas um cliente por horário,
+             * para o novo formato de lista.
+             */
+            Object.keys(appData.appointments).forEach(date => {
+
+                Object.keys(appData.appointments[date]).forEach(time => {
+
+                    const appointment =
+                        appData.appointments[date][time];
+
+                    if (!Array.isArray(appointment)) {
+                        appData.appointments[date][time] = [appointment];
+                    }
+                });
+            });
+
             appData.establishment.pixKey = FIXED_PIX_KEY;
             appData.establishment.contact = FIXED_SUPPORT_EMAIL;
 
             if (!appData.termsAccepted) {
-                document.getElementById('termsModal').classList.remove('hidden');
+
+                document.getElementById('termsModal')
+                    .classList.remove('hidden');
+
             } else {
+
                 checkLicense();
             }
 
             loadEstablishmentUI();
-            
-            const todayStr = new Date().toISOString().split('T')[0];
-            document.getElementById('calendarDateInput').value = todayStr;
+
+            const todayStr =
+                new Date().toISOString().split('T')[0];
+
+            document.getElementById('calendarDateInput').value =
+                todayStr;
+
             loadDaySchedule();
 
             setupSecretTrigger();
         }
 
         function saveData() {
-            appData.establishment.pixKey = FIXED_PIX_KEY;
-            appData.establishment.contact = FIXED_SUPPORT_EMAIL;
-            localStorage.setItem('excellington_data', JSON.stringify(appData));
+
+            appData.establishment.pixKey =
+                FIXED_PIX_KEY;
+
+            appData.establishment.contact =
+                FIXED_SUPPORT_EMAIL;
+
+            localStorage.setItem(
+                'excellington_data',
+                JSON.stringify(appData)
+            );
         }
 
         function setupSecretTrigger() {
+
             let clickCount = 0;
             let clickTimer = null;
-            const trigger = document.getElementById('secretTrigger');
-            
+
+            const trigger =
+                document.getElementById('secretTrigger');
+
             trigger.addEventListener('click', () => {
+
                 clickCount++;
+
                 clearTimeout(clickTimer);
-                
+
                 if (clickCount >= 5) {
+
                     clickCount = 0;
                     showLicenseModal();
+
                 } else {
+
                     clickTimer = setTimeout(() => {
                         clickCount = 0;
                     }, 1000);
@@ -447,477 +537,1672 @@
         }
 
         function acceptTerms() {
+
             appData.termsAccepted = true;
+
             const expDate = new Date();
-            expDate.setDate(expDate.getDate() + 30);
-            appData.licenseExpires = expDate.toISOString().split('T')[0];
+
+            expDate.setDate(
+                expDate.getDate() + 30
+            );
+
+            appData.licenseExpires =
+                expDate.toISOString().split('T')[0];
+
             saveData();
-            document.getElementById('termsModal').classList.add('hidden');
+
+            document.getElementById('termsModal')
+                .classList.add('hidden');
+
             checkLicense();
         }
 
         function checkLicense() {
+
             if (!appData.licenseExpires) {
+
                 showLicenseModal();
                 return;
             }
-            const today = new Date().toISOString().split('T')[0];
+
+            const today =
+                new Date().toISOString().split('T')[0];
+
             if (today > appData.licenseExpires) {
                 showLicenseModal();
             }
         }
 
         function showLicenseModal() {
-            document.getElementById('licenseEstName').innerText = appData.establishment.name || "Estabelecimento Excellington";
-            
+
+            document.getElementById('licenseEstName').innerText =
+                appData.establishment.name ||
+                "Estabelecimento Excellington";
+
             let expFormatted = "-";
+
             if (appData.licenseExpires) {
-                const parts = appData.licenseExpires.split('-');
+
+                const parts =
+                    appData.licenseExpires.split('-');
+
                 if (parts.length === 3) {
-                    expFormatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+
+                    expFormatted =
+                        `${parts[2]}/${parts[1]}/${parts[0]}`;
                 }
             }
-            document.getElementById('licenseExpDate').innerText = expFormatted;
 
-            document.getElementById('licenseModal').classList.remove('hidden');
+            document.getElementById('licenseExpDate').innerText =
+                expFormatted;
+
+            document.getElementById('licenseModal')
+                .classList.remove('hidden');
         }
 
         function closeLicenseModalIfValid() {
-            const today = new Date().toISOString().split('T')[0];
-            if (appData.licenseExpires && today <= appData.licenseExpires) {
-                document.getElementById('licenseModal').classList.add('hidden');
+
+            const today =
+                new Date().toISOString().split('T')[0];
+
+            if (
+                appData.licenseExpires &&
+                today <= appData.licenseExpires
+            ) {
+
+                document.getElementById('licenseModal')
+                    .classList.add('hidden');
+
             } else {
-                alert("Sua licença está expirada. É necessário inserir um código de liberação válido.");
+
+                alert(
+                    "Sua licença está expirada. É necessário inserir um código de liberação válido."
+                );
             }
         }
 
         function copyPixKey() {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(FIXED_PIX_KEY).then(() => {
-                    alert("Chave Pix copiada com sucesso: " + FIXED_PIX_KEY);
-                }).catch(err => {
-                    fallbackCopy(FIXED_PIX_KEY, "Chave Pix copiada: " + FIXED_PIX_KEY);
-                });
+
+            if (
+                navigator.clipboard &&
+                navigator.clipboard.writeText
+            ) {
+
+                navigator.clipboard.writeText(FIXED_PIX_KEY)
+                    .then(() => {
+
+                        alert(
+                            "Chave Pix copiada com sucesso: " +
+                            FIXED_PIX_KEY
+                        );
+
+                    })
+                    .catch(err => {
+
+                        fallbackCopy(
+                            FIXED_PIX_KEY,
+                            "Chave Pix copiada: " +
+                            FIXED_PIX_KEY
+                        );
+                    });
+
             } else {
-                fallbackCopy(FIXED_PIX_KEY, "Chave Pix copiada: " + FIXED_PIX_KEY);
+
+                fallbackCopy(
+                    FIXED_PIX_KEY,
+                    "Chave Pix copiada: " +
+                    FIXED_PIX_KEY
+                );
             }
         }
 
         function fallbackCopy(text, successMsg) {
-            const textArea = document.createElement("textarea");
+
+            const textArea =
+                document.createElement("textarea");
+
             textArea.value = text;
             textArea.style.position = "fixed";
             textArea.style.top = "0";
             textArea.style.left = "0";
             textArea.style.opacity = "0";
+
             document.body.appendChild(textArea);
+
             textArea.focus();
             textArea.select();
+
             try {
-                const successful = document.execCommand('copy');
+
+                const successful =
+                    document.execCommand('copy');
+
                 if (successful) {
+
                     alert(successMsg);
+
                 } else {
+
                     alert("Chave Pix: " + text);
                 }
+
             } catch (err) {
+
                 alert("Chave Pix: " + text);
             }
+
             document.body.removeChild(textArea);
         }
 
         function calculateExpectedCode(estName, expDateStr) {
+
             if (!expDateStr) return "";
-            const parts = expDateStr.split('-');
+
+            const parts =
+                expDateStr.split('-');
+
             if (parts.length !== 3) return "";
-            
-            const ano = parseInt(parts[0], 10);
-            const mes = parseInt(parts[1], 10);
-            const dia = parseInt(parts[2], 10);
 
-            const nomeSemEspacos = estName.replace(/\s+/g, '');
-            const qtdChars = nomeSemEspacos.length;
+            const ano =
+                parseInt(parts[0], 10);
 
-            const baseSum = qtdChars + dia + mes + ano;
-            const cubeValue = Math.pow(baseSum, 3);
+            const mes =
+                parseInt(parts[1], 10);
+
+            const dia =
+                parseInt(parts[2], 10);
+
+            const nomeSemEspacos =
+                estName.replace(/\s+/g, '');
+
+            const qtdChars =
+                nomeSemEspacos.length;
+
+            const baseSum =
+                qtdChars + dia + mes + ano;
+
+            const cubeValue =
+                Math.pow(baseSum, 3);
 
             return String(cubeValue);
         }
 
         function validateLicenseCode() {
-            const inputCode = document.getElementById('activationCodeInput').value.trim();
-            
+
+            const inputCode =
+                document.getElementById(
+                    'activationCodeInput'
+                ).value.trim();
+
             if (!appData.licenseExpires) {
-                alert("Data de expiração não definida.");
+
+                alert(
+                    "Data de expiração não definida."
+                );
+
                 return;
             }
 
-            const expectedCode = calculateExpectedCode(appData.establishment.name, appData.licenseExpires);
+            const expectedCode =
+                calculateExpectedCode(
+                    appData.establishment.name,
+                    appData.licenseExpires
+                );
 
-            if (inputCode === expectedCode && inputCode !== "") {
-                const currentExp = new Date(appData.licenseExpires);
-                const today = new Date();
-                let baseDate = currentExp > today ? currentExp : today;
-                
-                baseDate.setDate(baseDate.getDate() + 30);
-                appData.licenseExpires = baseDate.toISOString().split('T')[0];
+            if (
+                inputCode === expectedCode &&
+                inputCode !== ""
+            ) {
+
+                const currentExp =
+                    new Date(
+                        appData.licenseExpires
+                    );
+
+                const today =
+                    new Date();
+
+                let baseDate =
+                    currentExp > today
+                        ? currentExp
+                        : today;
+
+                baseDate.setDate(
+                    baseDate.getDate() + 30
+                );
+
+                appData.licenseExpires =
+                    baseDate.toISOString().split('T')[0];
+
                 saveData();
 
-                alert("Aplicativo ativado com sucesso por mais 30 dias!");
-                document.getElementById('activationCodeInput').value = '';
-                document.getElementById('licenseModal').classList.add('hidden');
+                alert(
+                    "Aplicativo ativado com sucesso por mais 30 dias!"
+                );
+
+                document.getElementById(
+                    'activationCodeInput'
+                ).value = '';
+
+                document.getElementById(
+                    'licenseModal'
+                ).classList.add('hidden');
+
             } else {
-                alert("Código de liberação inválido. Verifique se digitou corretamente o código gerado.");
+
+                alert(
+                    "Código de liberação inválido. Verifique se digitou corretamente o código gerado."
+                );
             }
         }
 
         function switchTab(tabName) {
-            document.getElementById('sectionSchedule').classList.add('hidden');
-            document.getElementById('sectionSetup').classList.add('hidden');
-            document.getElementById('sectionClients').classList.add('hidden');
 
-            document.getElementById('tabBtnSchedule').classList.remove('active');
-            document.getElementById('tabBtnSetup').classList.remove('active');
-            document.getElementById('tabBtnClients').classList.remove('active');
+            document.getElementById(
+                'sectionSchedule'
+            ).classList.add('hidden');
+
+            document.getElementById(
+                'sectionSetup'
+            ).classList.add('hidden');
+
+            document.getElementById(
+                'sectionClients'
+            ).classList.add('hidden');
+
+            document.getElementById(
+                'tabBtnSchedule'
+            ).classList.remove('active');
+
+            document.getElementById(
+                'tabBtnSetup'
+            ).classList.remove('active');
+
+            document.getElementById(
+                'tabBtnClients'
+            ).classList.remove('active');
 
             if (tabName === 'schedule') {
-                document.getElementById('sectionSchedule').classList.remove('hidden');
-                document.getElementById('tabBtnSchedule').classList.add('active');
+
+                document.getElementById(
+                    'sectionSchedule'
+                ).classList.remove('hidden');
+
+                document.getElementById(
+                    'tabBtnSchedule'
+                ).classList.add('active');
+
                 loadDaySchedule();
+
             } else if (tabName === 'setup') {
-                document.getElementById('sectionSetup').classList.remove('hidden');
-                document.getElementById('tabBtnSetup').classList.add('active');
+
+                document.getElementById(
+                    'sectionSetup'
+                ).classList.remove('hidden');
+
+                document.getElementById(
+                    'tabBtnSetup'
+                ).classList.add('active');
+
             } else if (tabName === 'clients') {
-                document.getElementById('sectionClients').classList.remove('hidden');
-                document.getElementById('tabBtnClients').classList.add('active');
+
+                document.getElementById(
+                    'sectionClients'
+                ).classList.remove('hidden');
+
+                document.getElementById(
+                    'tabBtnClients'
+                ).classList.add('active');
+
                 renderClientsList();
             }
         }
 
         function loadEstablishmentUI() {
-            document.getElementById('setupName').value = appData.establishment.name;
-            document.getElementById('setupStart').value = appData.establishment.start;
-            document.getElementById('setupEnd').value = appData.establishment.end;
-            document.getElementById('setupMealStart').value = appData.establishment.mealStart;
-            document.getElementById('setupMealEnd').value = appData.establishment.mealEnd;
-            document.getElementById('setupDuration').value = appData.establishment.duration;
-            
-            document.getElementById('estSubtitle').innerText = appData.establishment.name;
+
+            document.getElementById(
+                'setupName'
+            ).value =
+                appData.establishment.name;
+
+            document.getElementById(
+                'setupStart'
+            ).value =
+                appData.establishment.start;
+
+            document.getElementById(
+                'setupEnd'
+            ).value =
+                appData.establishment.end;
+
+            document.getElementById(
+                'setupMealStart'
+            ).value =
+                appData.establishment.mealStart;
+
+            document.getElementById(
+                'setupMealEnd'
+            ).value =
+                appData.establishment.mealEnd;
+
+            document.getElementById(
+                'setupDuration'
+            ).value =
+                appData.establishment.duration;
+
+            if (
+                typeof appData.establishment.multiBooking !==
+                'boolean'
+            ) {
+                appData.establishment.multiBooking = false;
+            }
+
+            if (
+                !appData.establishment.maxClientsPerSlot
+            ) {
+                appData.establishment.maxClientsPerSlot = 5;
+            }
+
+            document.getElementById(
+                'setupMultiBooking'
+            ).checked =
+                appData.establishment.multiBooking;
+
+            document.getElementById(
+                'setupMaxClients'
+            ).value =
+                appData.establishment.maxClientsPerSlot;
+
+            document.getElementById(
+                'multiBookingOptions'
+            ).classList.toggle(
+                'hidden',
+                !appData.establishment.multiBooking
+            );
+
+            document.getElementById(
+                'estSubtitle'
+            ).innerText =
+                appData.establishment.name;
         }
 
         function saveEstablishmentSettings() {
-            appData.establishment.name = document.getElementById('setupName').value;
-            appData.establishment.start = document.getElementById('setupStart').value;
-            appData.establishment.end = document.getElementById('setupEnd').value;
-            appData.establishment.mealStart = document.getElementById('setupMealStart').value;
-            appData.establishment.mealEnd = document.getElementById('setupMealEnd').value;
-            appData.establishment.duration = parseInt(document.getElementById('setupDuration').value) || 30;
-            appData.establishment.contact = FIXED_SUPPORT_EMAIL;
-            appData.establishment.pixKey = FIXED_PIX_KEY;
+
+            appData.establishment.name =
+                document.getElementById(
+                    'setupName'
+                ).value;
+
+            appData.establishment.start =
+                document.getElementById(
+                    'setupStart'
+                ).value;
+
+            appData.establishment.end =
+                document.getElementById(
+                    'setupEnd'
+                ).value;
+
+            appData.establishment.mealStart =
+                document.getElementById(
+                    'setupMealStart'
+                ).value;
+
+            appData.establishment.mealEnd =
+                document.getElementById(
+                    'setupMealEnd'
+                ).value;
+
+            appData.establishment.duration =
+                parseInt(
+                    document.getElementById(
+                        'setupDuration'
+                    ).value
+                ) || 30;
+
+            appData.establishment.multiBooking =
+                document.getElementById(
+                    'setupMultiBooking'
+                ).checked;
+
+            appData.establishment.maxClientsPerSlot =
+                parseInt(
+                    document.getElementById(
+                        'setupMaxClients'
+                    ).value
+                ) || 5;
+
+            if (
+                appData.establishment.maxClientsPerSlot < 2
+            ) {
+                appData.establishment.maxClientsPerSlot = 2;
+            }
+
+            appData.establishment.contact =
+                FIXED_SUPPORT_EMAIL;
+
+            appData.establishment.pixKey =
+                FIXED_PIX_KEY;
 
             saveData();
+
             loadEstablishmentUI();
-            alert("Configurações salvas com sucesso!");
+
+            alert(
+                "Configurações salvas com sucesso!"
+            );
+
             switchTab('schedule');
         }
 
         function loadDaySchedule() {
-            const dateVal = document.getElementById('calendarDateInput').value;
+
+            const dateVal =
+                document.getElementById(
+                    'calendarDateInput'
+                ).value;
+
             if (!dateVal) return;
 
-            document.getElementById('selectedDateTitle').innerText = `Horários para ${dateVal.split('-').reverse().join('/')}`;
-            const container = document.getElementById('slotsContainer');
+            document.getElementById(
+                'selectedDateTitle'
+            ).innerText =
+                `Horários para ${dateVal
+                    .split('-')
+                    .reverse()
+                    .join('/')}`;
+
+            const container =
+                document.getElementById(
+                    'slotsContainer'
+                );
+
             container.innerHTML = '';
 
-            const est = appData.establishment;
-            const slots = generateTimeSlots(est.start, est.end, est.mealStart, est.mealEnd, est.duration);
-            
-            const dayAppointments = appData.appointments[dateVal] || {};
+            const est =
+                appData.establishment;
+
+            const slots =
+                generateTimeSlots(
+                    est.start,
+                    est.end,
+                    est.mealStart,
+                    est.mealEnd,
+                    est.duration
+                );
+
+            const dayAppointments =
+                appData.appointments[dateVal] || {};
 
             slots.forEach(time => {
-                const slotDiv = document.createElement('div');
-                const isBooked = dayAppointments[time] !== undefined;
-                
-                slotDiv.className = `slot-item ${isBooked ? 'booked' : ''}`;
 
-                if (isBooked) {
-                    const appt = dayAppointments[time];
+                let appointments =
+                    dayAppointments[time] || [];
+
+                if (!Array.isArray(appointments)) {
+                    appointments = [appointments];
+                }
+
+                const count =
+                    appointments.length;
+
+                const multiBooking =
+                    est.multiBooking === true;
+
+                const maxClients =
+                    parseInt(
+                        est.maxClientsPerSlot
+                    ) || 5;
+
+                const slotDiv =
+                    document.createElement('div');
+
+                slotDiv.className =
+                    `slot-item ${
+                        count > 0 ? 'booked' : ''
+                    }`;
+
+                /*
+                 * HORÁRIO LIVRE
+                 */
+                if (count === 0) {
+
                     slotDiv.innerHTML = `
                         <div>
-                            <strong>${time}</strong> - ${appt.name} (${appt.phone})<br>
-                            <small>Pgto: ${appt.payment} | Obs: ${appt.notes || 'Nenhuma'}</small>
+                            <strong>${time}</strong>
+                            <span class="badge free">
+                                Disponível
+                            </span>
                         </div>
+
                         <div class="actions-row">
-                            <button class="secondary" onclick="sendSMS('${appt.phone}', '${dateVal}', '${time}')">SMS</button>
-                            <button onclick="openAppointmentModal('${dateVal}', '${time}', true)">Editar</button>
-                            <button class="danger" onclick="deleteAppointment('${dateVal}', '${time}')">Excluir</button>
+                            <button
+                                onclick="openAppointmentModal('${dateVal}', '${time}', false)">
+                                Agendar
+                            </button>
                         </div>
                     `;
+
                 } else {
+
+                    let clientsHTML = '';
+
+                    appointments.forEach(
+                        (appt, index) => {
+
+                            clientsHTML += `
+                                <div style="
+                                    padding:8px 0;
+                                    border-bottom:1px solid var(--border);
+                                ">
+                                    <strong>
+                                        ${time} — ${escapeHTML(appt.name)}
+                                    </strong>
+
+                                    <br>
+
+                                    <small>
+                                        Tel:
+                                        ${escapeHTML(appt.phone)}
+                                        |
+                                        Pgto:
+                                        ${escapeHTML(appt.payment)}
+                                    </small>
+
+                                    ${
+                                        appt.notes
+                                            ? `
+                                                <br>
+                                                <small>
+                                                    Obs:
+                                                    ${escapeHTML(appt.notes)}
+                                                </small>
+                                            `
+                                            : ''
+                                    }
+
+                                    <div
+                                        class="actions-row"
+                                        style="margin-top:6px;"
+                                    >
+
+                                        <button
+                                            class="secondary"
+                                            onclick="sendSMS(
+                                                '${escapeJS(appt.phone)}',
+                                                '${dateVal}',
+                                                '${time}'
+                                            )">
+                                            SMS
+                                        </button>
+
+                                        <button
+                                            onclick="openAppointmentModal(
+                                                '${dateVal}',
+                                                '${time}',
+                                                true,
+                                                ${index}
+                                            )">
+                                            Editar
+                                        </button>
+
+                                        <button
+                                            class="danger"
+                                            onclick="deleteAppointment(
+                                                '${dateVal}',
+                                                '${time}',
+                                                ${index}
+                                            )">
+                                            Excluir
+                                        </button>
+
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    );
+
+                    const canAdd =
+                        multiBooking &&
+                        count < maxClients;
+
                     slotDiv.innerHTML = `
-                        <div>
-                            <strong>${time}</strong> <span class="badge free">Disponível</span>
-                        </div>
-                        <div class="actions-row">
-                            <button onclick="openAppointmentModal('${dateVal}', '${time}', false)">Agendar</button>
+                        <div style="width:100%;">
+
+                            <div style="
+                                display:flex;
+                                justify-content:space-between;
+                                align-items:center;
+                                margin-bottom:8px;
+                            ">
+
+                                <strong>${time}</strong>
+
+                                <span class="badge busy">
+                                    ${count}
+                                    ${
+                                        count === 1
+                                            ? 'cliente'
+                                            : 'clientes'
+                                    }
+
+                                    ${
+                                        multiBooking
+                                            ? ` / ${maxClients}`
+                                            : ''
+                                    }
+                                </span>
+
+                            </div>
+
+                            ${clientsHTML}
+
+                            ${
+                                canAdd
+                                    ? `
+                                        <div style="
+                                            display:flex;
+                                            gap:5px;
+                                            margin-top:10px;
+                                            flex-wrap:wrap;
+                                        ">
+                                            <button
+                                                onclick="openAppointmentModal(
+                                                    '${dateVal}',
+                                                    '${time}',
+                                                    false
+                                                )">
+                                                + Adicionar
+                                            </button>
+                                        </div>
+                                    `
+                                    : ''
+                            }
+
                         </div>
                     `;
                 }
+
                 container.appendChild(slotDiv);
             });
         }
 
-        function generateTimeSlots(start, end, mealStart, mealEnd, duration) {
-            const slots = [];
-            let current = timeToMinutes(start);
-            const endTime = timeToMinutes(end);
-            const mStart = timeToMinutes(mealStart);
-            const mEnd = timeToMinutes(mealEnd);
+        function generateTimeSlots(
+            start,
+            end,
+            mealStart,
+            mealEnd,
+            duration
+        ) {
 
-            while (current + duration <= endTime) {
-                if (!(current >= mStart && current < mEnd)) {
-                    slots.push(minutesToTime(current));
+            const slots = [];
+
+            let current =
+                timeToMinutes(start);
+
+            const endTime =
+                timeToMinutes(end);
+
+            const mStart =
+                timeToMinutes(mealStart);
+
+            const mEnd =
+                timeToMinutes(mealEnd);
+
+            while (
+                current + duration <= endTime
+            ) {
+
+                if (
+                    !(
+                        current >= mStart &&
+                        current < mEnd
+                    )
+                ) {
+                    slots.push(
+                        minutesToTime(current)
+                    );
                 }
+
                 current += duration;
             }
+
             return slots;
         }
 
         function timeToMinutes(timeStr) {
-            const [h, m] = timeStr.split(':').map(Number);
+
+            const [h, m] =
+                timeStr.split(':').map(Number);
+
             return h * 60 + m;
         }
 
         function minutesToTime(minutes) {
-            const h = String(Math.floor(minutes / 60)).padStart(2, '0');
-            const m = String(minutes % 60).padStart(2, '0');
+
+            const h =
+                String(
+                    Math.floor(minutes / 60)
+                ).padStart(2, '0');
+
+            const m =
+                String(
+                    minutes % 60
+                ).padStart(2, '0');
+
             return `${h}:${m}`;
         }
 
-        function updateModalTimeSlots(preselectTime = '') {
-            const dateVal = document.getElementById('modalAppointmentDate').value;
-            const select = document.getElementById('modalTimeSlotSelect');
+        function updateModalTimeSlots(
+            preselectTime = ''
+        ) {
+
+            const dateVal =
+                document.getElementById(
+                    'modalAppointmentDate'
+                ).value;
+
+            const select =
+                document.getElementById(
+                    'modalTimeSlotSelect'
+                );
+
             select.innerHTML = '';
 
             if (!dateVal) return;
 
-            const est = appData.establishment;
-            const slots = generateTimeSlots(est.start, est.end, est.mealStart, est.mealEnd, est.duration);
-            const dayAppts = appData.appointments[dateVal] || {};
+            const est =
+                appData.establishment;
+
+            const slots =
+                generateTimeSlots(
+                    est.start,
+                    est.end,
+                    est.mealStart,
+                    est.mealEnd,
+                    est.duration
+                );
+
+            const dayAppts =
+                appData.appointments[dateVal] || {};
 
             slots.forEach(time => {
-                const isBooked = dayAppts[time] !== undefined;
-                const isCurrentSlot = currentEditing.isEdit && currentEditing.oldDate === dateVal && currentEditing.oldTime === time;
 
-                if (!isBooked || isCurrentSlot) {
-                    const opt = document.createElement('option');
+                let appointments =
+                    dayAppts[time] || [];
+
+                if (!Array.isArray(appointments)) {
+                    appointments = [appointments];
+                }
+
+                const count =
+                    appointments.length;
+
+                const isCurrentSlot =
+                    currentEditing.isEdit &&
+                    currentEditing.oldDate === dateVal &&
+                    currentEditing.oldTime === time;
+
+                let available = false;
+
+                if (isCurrentSlot) {
+
+                    available = true;
+
+                } else if (
+                    est.multiBooking === true
+                ) {
+
+                    const maxClients =
+                        parseInt(
+                            est.maxClientsPerSlot
+                        ) || 5;
+
+                    available =
+                        count < maxClients;
+
+                } else {
+
+                    available =
+                        count === 0;
+                }
+
+                if (available) {
+
+                    const opt =
+                        document.createElement(
+                            'option'
+                        );
+
                     opt.value = time;
-                    opt.textContent = time + (isCurrentSlot ? ' (Horário Atual)' : '');
+
+                    if (count === 0) {
+
+                        opt.textContent =
+                            `${time} — Disponível`;
+
+                    } else {
+
+                        const maxClients =
+                            parseInt(
+                                est.maxClientsPerSlot
+                            ) || 5;
+
+                        opt.textContent =
+                            `${time} — ${count}/${maxClients} clientes`;
+                    }
+
                     select.appendChild(opt);
                 }
             });
 
-            if (select.options.length === 0) {
-                const opt = document.createElement('option');
+            if (
+                select.options.length === 0
+            ) {
+
+                const opt =
+                    document.createElement(
+                        'option'
+                    );
+
                 opt.value = "";
-                opt.textContent = "Nenhum horário disponível nesta data";
+
+                opt.textContent =
+                    "Nenhum horário disponível nesta data";
+
                 select.appendChild(opt);
+
             } else if (preselectTime) {
-                select.value = preselectTime;
+
+                select.value =
+                    preselectTime;
             }
         }
 
-        function openAppointmentModal(date, time, isEdit) {
-            currentEditing = { isEdit, oldDate: date, oldTime: time };
-            
-            document.getElementById('modalSlotTitle').innerText = `${isEdit ? 'Editar' : 'Novo'} Agendamento`;
-            document.getElementById('modalAppointmentDate').value = date;
-            
+        function openAppointmentModal(
+            date,
+            time,
+            isEdit,
+            appointmentIndex = -1
+        ) {
+
+            currentEditing = {
+                isEdit,
+                oldDate: date,
+                oldTime: time,
+                oldIndex: appointmentIndex
+            };
+
+            document.getElementById(
+                'modalSlotTitle'
+            ).innerText =
+                `${isEdit ? 'Editar' : 'Novo'} Agendamento`;
+
+            document.getElementById(
+                'modalAppointmentDate'
+            ).value = date;
+
             updateModalTimeSlots(time);
-            
-            if (isEdit && appData.appointments[date] && appData.appointments[date][time]) {
-                const appt = appData.appointments[date][time];
-                document.getElementById('clientName').value = appt.name;
-                document.getElementById('clientPhone').value = appt.phone;
-                document.getElementById('paymentMethod').value = appt.payment;
-                document.getElementById('clientNotes').value = appt.notes;
-            } else if (!isEdit) {
-                document.getElementById('clientName').value = '';
-                document.getElementById('clientPhone').value = '';
-                document.getElementById('paymentMethod').value = 'Dinheiro';
-                document.getElementById('clientNotes').value = '';
+
+            if (
+                isEdit &&
+                appointmentIndex >= 0 &&
+                appData.appointments[date] &&
+                appData.appointments[date][time]
+            ) {
+
+                let appointments =
+                    appData.appointments[date][time];
+
+                if (!Array.isArray(appointments)) {
+                    appointments = [appointments];
+                }
+
+                const appt =
+                    appointments[appointmentIndex];
+
+                if (appt) {
+
+                    document.getElementById(
+                        'clientName'
+                    ).value =
+                        appt.name || '';
+
+                    document.getElementById(
+                        'clientPhone'
+                    ).value =
+                        appt.phone || '';
+
+                    document.getElementById(
+                        'paymentMethod'
+                    ).value =
+                        appt.payment || 'Dinheiro';
+
+                    document.getElementById(
+                        'clientNotes'
+                    ).value =
+                        appt.notes || '';
+                }
+
+            } else {
+
+                document.getElementById(
+                    'clientName'
+                ).value = '';
+
+                document.getElementById(
+                    'clientPhone'
+                ).value = '';
+
+                document.getElementById(
+                    'paymentMethod'
+                ).value = 'Dinheiro';
+
+                document.getElementById(
+                    'clientNotes'
+                ).value = '';
             }
 
-            document.getElementById('appointmentModal').classList.remove('hidden');
+            document.getElementById(
+                'appointmentModal'
+            ).classList.remove('hidden');
         }
 
         function closeAppointmentModal() {
-            document.getElementById('appointmentModal').classList.add('hidden');
+
+            document.getElementById(
+                'appointmentModal'
+            ).classList.add('hidden');
         }
 
         function saveAppointment() {
-            const newDate = document.getElementById('modalAppointmentDate').value;
-            const newTime = document.getElementById('modalTimeSlotSelect').value;
-            const name = document.getElementById('clientName').value.trim();
-            const phone = document.getElementById('clientPhone').value.trim();
-            const payment = document.getElementById('paymentMethod').value;
-            const notes = document.getElementById('clientNotes').value.trim();
+
+            const newDate =
+                document.getElementById(
+                    'modalAppointmentDate'
+                ).value;
+
+            const newTime =
+                document.getElementById(
+                    'modalTimeSlotSelect'
+                ).value;
+
+            const name =
+                document.getElementById(
+                    'clientName'
+                ).value.trim();
+
+            const phone =
+                document.getElementById(
+                    'clientPhone'
+                ).value.trim();
+
+            const payment =
+                document.getElementById(
+                    'paymentMethod'
+                ).value;
+
+            const notes =
+                document.getElementById(
+                    'clientNotes'
+                ).value.trim();
 
             if (!newDate || !newTime) {
-                alert("Por favor, selecione uma data e um horário válido.");
+
+                alert(
+                    "Por favor, selecione uma data e um horário válido."
+                );
+
                 return;
             }
 
             if (!name || !phone) {
-                alert("Por favor, preencha o nome e o telefone do cliente/paciente.");
+
+                alert(
+                    "Por favor, preencha o nome e o telefone do cliente/paciente."
+                );
+
                 return;
             }
 
-            if (currentEditing.isEdit && currentEditing.oldDate && currentEditing.oldTime) {
-                if (appData.appointments[currentEditing.oldDate] && appData.appointments[currentEditing.oldDate][currentEditing.oldTime]) {
-                    delete appData.appointments[currentEditing.oldDate][currentEditing.oldTime];
-                    if (Object.keys(appData.appointments[currentEditing.oldDate]).length === 0) {
-                        delete appData.appointments[currentEditing.oldDate];
+            const appointmentData = {
+                name,
+                phone,
+                payment,
+                notes
+            };
+
+            /*
+             * EDIÇÃO
+             */
+            if (
+                currentEditing.isEdit &&
+                currentEditing.oldDate &&
+                currentEditing.oldTime &&
+                currentEditing.oldIndex >= 0
+            ) {
+
+                let oldAppointments =
+                    appData.appointments[
+                        currentEditing.oldDate
+                    ] &&
+                    appData.appointments[
+                        currentEditing.oldDate
+                    ][
+                        currentEditing.oldTime
+                    ];
+
+                if (oldAppointments) {
+
+                    if (!Array.isArray(oldAppointments)) {
+                        oldAppointments = [
+                            oldAppointments
+                        ];
+                    }
+
+                    oldAppointments.splice(
+                        currentEditing.oldIndex,
+                        1
+                    );
+
+                    if (
+                        oldAppointments.length === 0
+                    ) {
+
+                        delete appData.appointments[
+                            currentEditing.oldDate
+                        ][
+                            currentEditing.oldTime
+                        ];
+
+                    } else {
+
+                        appData.appointments[
+                            currentEditing.oldDate
+                        ][
+                            currentEditing.oldTime
+                        ] = oldAppointments;
+                    }
+
+                    if (
+                        Object.keys(
+                            appData.appointments[
+                                currentEditing.oldDate
+                            ]
+                        ).length === 0
+                    ) {
+
+                        delete appData.appointments[
+                            currentEditing.oldDate
+                        ];
                     }
                 }
             }
 
-            if (!appData.appointments[newDate]) {
+            /*
+             * GARANTE A EXISTÊNCIA DA DATA
+             */
+            if (
+                !appData.appointments[newDate]
+            ) {
+
                 appData.appointments[newDate] = {};
             }
 
-            appData.appointments[newDate][newTime] = { name, phone, payment, notes };
+            /*
+             * GARANTE QUE O HORÁRIO SEJA UM ARRAY
+             */
+            if (
+                !appData.appointments[
+                    newDate
+                ][newTime]
+            ) {
 
-            if (!appData.clients.some(c => c.phone === phone)) {
-                appData.clients.push({ name, phone });
+                appData.appointments[
+                    newDate
+                ][newTime] = [];
+            }
+
+            if (
+                !Array.isArray(
+                    appData.appointments[
+                        newDate
+                    ][newTime]
+                )
+            ) {
+
+                appData.appointments[
+                    newDate
+                ][newTime] = [
+                    appData.appointments[
+                        newDate
+                    ][newTime]
+                ];
+            }
+
+            const appointments =
+                appData.appointments[
+                    newDate
+                ][newTime];
+
+            /*
+             * NOVO AGENDAMENTO
+             */
+            if (!currentEditing.isEdit) {
+
+                if (
+                    appData.establishment.multiBooking === true
+                ) {
+
+                    const maxClients =
+                        parseInt(
+                            appData.establishment
+                                .maxClientsPerSlot
+                        ) || 5;
+
+                    if (
+                        appointments.length >=
+                        maxClients
+                    ) {
+
+                        alert(
+                            `Este horário já atingiu o limite de ${maxClients} clientes.`
+                        );
+
+                        return;
+                    }
+
+                } else {
+
+                    if (
+                        appointments.length >= 1
+                    ) {
+
+                        alert(
+                            "Este horário já está ocupado."
+                        );
+
+                        return;
+                    }
+                }
+
+                appointments.push(
+                    appointmentData
+                );
+
             } else {
-                const clientObj = appData.clients.find(c => c.phone === phone);
-                if (clientObj) clientObj.name = name;
+
+                /*
+                 * EDIÇÃO:
+                 * coloca o cliente novamente
+                 * no novo horário.
+                 */
+                appointments.push(
+                    appointmentData
+                );
+            }
+
+            /*
+             * SALVA O CLIENTE NA LISTA DE CONTATOS
+             */
+            if (
+                !appData.clients.some(
+                    c => c.phone === phone
+                )
+            ) {
+
+                appData.clients.push({
+                    name,
+                    phone
+                });
+
+            } else {
+
+                const clientObj =
+                    appData.clients.find(
+                        c => c.phone === phone
+                    );
+
+                if (clientObj) {
+                    clientObj.name = name;
+                }
             }
 
             saveData();
+
             closeAppointmentModal();
-            
-            document.getElementById('calendarDateInput').value = newDate;
+
+            document.getElementById(
+                'calendarDateInput'
+            ).value = newDate;
+
             loadDaySchedule();
-            alert("Agendamento salvo com sucesso!");
-        }
 
-        function deleteAppointment(date, time) {
-            if (confirm("Deseja realmente excluir este agendamento?")) {
-                if (appData.appointments[date] && appData.appointments[date][time]) {
-                    delete appData.appointments[date][time];
-                    saveData();
-                    loadDaySchedule();
-                }
-            }
-        }
-
-        function sendSMS(phone, date, time) {
-            const estName = appData.establishment.name;
-            const formattedDate = date.split('-').reverse().join('/');
-            const message = `Olá! Confirmando seu agendamento em ${estName} para o dia ${formattedDate} às ${time}. Agradecemos a preferência!`;
-            const smsUrl = `sms:${phone}?body=${encodeURIComponent(message)}`;
-            window.location.href = smsUrl;
-        }
-
-        function renderClientsList() {
-            const container = document.getElementById('clientsContainer');
-            container.innerHTML = '';
-
-            const searchInput = document.getElementById('clientSearchInput');
-            const filter = searchInput ? searchInput.value.toLowerCase().trim() : '';
-
-            const filteredClients = appData.clients.filter(client => 
-                client.name.toLowerCase().includes(filter) || client.phone.includes(filter)
+            alert(
+                "Agendamento salvo com sucesso!"
             );
+        }
 
-            if (filteredClients.length === 0) {
-                container.innerHTML = '<p>Nenhum contato encontrado.</p>';
+        function deleteAppointment(
+            date,
+            time,
+            appointmentIndex = 0
+        ) {
+
+            if (
+                !confirm(
+                    "Deseja realmente excluir este agendamento?"
+                )
+            ) {
                 return;
             }
 
-            filteredClients.forEach((client) => {
-                const originalIndex = appData.clients.findIndex(c => c.phone === client.phone);
+            if (
+                appData.appointments[date] &&
+                appData.appointments[date][time]
+            ) {
 
-                const div = document.createElement('div');
-                div.className = 'slot-item';
-                div.innerHTML = `
-                    <div>
-                        <strong>${client.name}</strong><br>
-                        <small>Tel: ${client.phone}</small>
-                    </div>
-                    <div class="actions-row">
-                        <button class="secondary" onclick="quickBookClient('${client.name}', '${client.phone}')">Agendar Rápido</button>
-                        <button class="danger" onclick="deleteClient(${originalIndex})">Excluir</button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
+                let appointments =
+                    appData.appointments[date][time];
+
+                if (!Array.isArray(appointments)) {
+                    appointments = [appointments];
+                }
+
+                appointments.splice(
+                    appointmentIndex,
+                    1
+                );
+
+                if (
+                    appointments.length === 0
+                ) {
+
+                    delete appData.appointments[
+                        date
+                    ][time];
+
+                } else {
+
+                    appData.appointments[
+                        date
+                    ][time] = appointments;
+                }
+
+                if (
+                    Object.keys(
+                        appData.appointments[date]
+                    ).length === 0
+                ) {
+
+                    delete appData.appointments[
+                        date
+                    ];
+                }
+
+                saveData();
+
+                loadDaySchedule();
+            }
         }
 
-        function quickBookClient(name, phone) {
+        function sendSMS(
+            phone,
+            date,
+            time
+        ) {
+
+            const estName =
+                appData.establishment.name;
+
+            const formattedDate =
+                date
+                    .split('-')
+                    .reverse()
+                    .join('/');
+
+            const message =
+                `Olá! Confirmando seu agendamento em ${estName} para o dia ${formattedDate} às ${time}. Agradecemos a preferência!`;
+
+            const smsUrl =
+                `sms:${phone}?body=${encodeURIComponent(message)}`;
+
+            window.location.href =
+                smsUrl;
+        }
+
+        function renderClientsList() {
+
+            const container =
+                document.getElementById(
+                    'clientsContainer'
+                );
+
+            container.innerHTML = '';
+
+            const searchInput =
+                document.getElementById(
+                    'clientSearchInput'
+                );
+
+            const filter =
+                searchInput
+                    ? searchInput.value.toLowerCase().trim()
+                    : '';
+
+            const filteredClients =
+                appData.clients.filter(
+                    client =>
+                        client.name
+                            .toLowerCase()
+                            .includes(filter) ||
+                        client.phone
+                            .includes(filter)
+                );
+
+            if (
+                filteredClients.length === 0
+            ) {
+
+                container.innerHTML =
+                    '<p>Nenhum contato encontrado.</p>';
+
+                return;
+            }
+
+            filteredClients.forEach(
+                (client) => {
+
+                    const originalIndex =
+                        appData.clients.findIndex(
+                            c =>
+                                c.phone ===
+                                client.phone
+                        );
+
+                    const div =
+                        document.createElement('div');
+
+                    div.className =
+                        'slot-item';
+
+                    div.innerHTML = `
+                        <div>
+                            <strong>
+                                ${escapeHTML(client.name)}
+                            </strong>
+                            <br>
+                            <small>
+                                Tel:
+                                ${escapeHTML(client.phone)}
+                            </small>
+                        </div>
+
+                        <div class="actions-row">
+
+                            <button
+                                class="secondary"
+                                onclick="quickBookClient(
+                                    '${escapeJS(client.name)}',
+                                    '${escapeJS(client.phone)}'
+                                )">
+                                Agendar Rápido
+                            </button>
+
+                            <button
+                                class="danger"
+                                onclick="deleteClient(${originalIndex})">
+                                Excluir
+                            </button>
+
+                        </div>
+                    `;
+
+                    container.appendChild(div);
+                }
+            );
+        }
+
+        function quickBookClient(
+            name,
+            phone
+        ) {
+
             switchTab('schedule');
-            const todayStr = new Date().toISOString().split('T')[0];
-            document.getElementById('calendarDateInput').value = todayStr;
-            
-            openAppointmentModal(todayStr, '', false);
-            
-            document.getElementById('clientName').value = name;
-            document.getElementById('clientPhone').value = phone;
+
+            const todayStr =
+                new Date()
+                    .toISOString()
+                    .split('T')[0];
+
+            document.getElementById(
+                'calendarDateInput'
+            ).value = todayStr;
+
+            openAppointmentModal(
+                todayStr,
+                '',
+                false
+            );
+
+            document.getElementById(
+                'clientName'
+            ).value = name;
+
+            document.getElementById(
+                'clientPhone'
+            ).value = phone;
         }
 
         function deleteClient(index) {
-            if (confirm("Deseja remover este contato da lista?")) {
-                appData.clients.splice(index, 1);
+
+            if (
+                confirm(
+                    "Deseja remover este contato da lista?"
+                )
+            ) {
+
+                appData.clients.splice(
+                    index,
+                    1
+                );
+
                 saveData();
+
                 renderClientsList();
             }
         }
 
         function exportBackup() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `backup_excellington_${new Date().toISOString().split('T')[0]}.json`);
-            document.body.appendChild(downloadAnchor);
+
+            const dataStr =
+                "data:text/json;charset=utf-8," +
+                encodeURIComponent(
+                    JSON.stringify(appData)
+                );
+
+            const downloadAnchor =
+                document.createElement('a');
+
+            downloadAnchor.setAttribute(
+                "href",
+                dataStr
+            );
+
+            downloadAnchor.setAttribute(
+                "download",
+                `backup_excellington_${
+                    new Date()
+                        .toISOString()
+                        .split('T')[0]
+                }.json`
+            );
+
+            document.body.appendChild(
+                downloadAnchor
+            );
+
             downloadAnchor.click();
+
             downloadAnchor.remove();
         }
 
         function importBackup(event) {
-            const fileReader = new FileReader();
+
+            const fileReader =
+                new FileReader();
+
             if (event.target.files[0]) {
-                fileReader.readAsText(event.target.files[0], "UTF-8");
-                fileReader.onload = function (e) {
-                    try {
-                        const parsed = JSON.parse(e.target.result);
-                        if (parsed && parsed.establishment) {
-                            appData = parsed;
-                            saveData();
-                            initApp();
-                            alert("Backup restaurado com sucesso!");
-                        } else {
-                            alert("Arquivo de backup inválido.");
+
+                fileReader.readAsText(
+                    event.target.files[0],
+                    "UTF-8"
+                );
+
+                fileReader.onload =
+                    function (e) {
+
+                        try {
+
+                            const parsed =
+                                JSON.parse(
+                                    e.target.result
+                                );
+
+                            if (
+                                parsed &&
+                                parsed.establishment
+                            ) {
+
+                                appData = parsed;
+
+                                saveData();
+
+                                initApp();
+
+                                alert(
+                                    "Backup restaurado com sucesso!"
+                                );
+
+                            } else {
+
+                                alert(
+                                    "Arquivo de backup inválido."
+                                );
+                            }
+
+                        } catch (error) {
+
+                            alert(
+                                "Erro ao ler o arquivo JSON."
+                            );
                         }
-                    } catch (error) {
-                        alert("Erro ao ler o arquivo JSON.");
-                    }
-                }
+                    };
             }
         }
 
         function exitApp() {
-            if (confirm("Deseja realmente sair e fechar o aplicativo?")) {
+
+            if (
+                confirm(
+                    "Deseja realmente sair e fechar o aplicativo?"
+                )
+            ) {
+
                 window.close();
+
                 setTimeout(() => {
-                    alert("Se o navegador não fechou automaticamente por razões de segurança, você pode fechar esta aba com tranquilidade.");
+
+                    alert(
+                        "Se o navegador não fechou automaticamente por razões de segurança, você pode fechar esta aba com tranquilidade."
+                    );
+
                 }, 300);
             }
+        }
+
+        /*
+         * Mostra/oculta as configurações de
+         * atendimento múltiplo.
+         */
+        document.addEventListener(
+            'DOMContentLoaded',
+            () => {
+
+                const multiCheckbox =
+                    document.getElementById(
+                        'setupMultiBooking'
+                    );
+
+                if (multiCheckbox) {
+
+                    multiCheckbox.addEventListener(
+                        'change',
+                        function() {
+
+                            document.getElementById(
+                                'multiBookingOptions'
+                            ).classList.toggle(
+                                'hidden',
+                                !this.checked
+                            );
+                        }
+                    );
+                }
+            }
+        );
+
+        /*
+         * Segurança para exibição de texto
+         * inserido pelo usuário.
+         */
+        function escapeHTML(text) {
+
+            return String(text || '')
+                .replace(
+                    /&/g,
+                    '&amp;'
+                )
+                .replace(
+                    /</g,
+                    '&lt;'
+                )
+                .replace(
+                    />/g,
+                    '&gt;'
+                )
+                .replace(
+                    /"/g,
+                    '&quot;'
+                )
+                .replace(
+                    /'/g,
+                    '&#039;'
+                );
+        }
+
+        function escapeJS(text) {
+
+            return String(text || '')
+                .replace(
+                    /\\/g,
+                    '\\\\'
+                )
+                .replace(
+                    /'/g,
+                    "\\'"
+                )
+                .replace(
+                    /\n/g,
+                    '\\n'
+                )
+                .replace(
+                    /\r/g,
+                    '\\r'
+                );
         }
 
         window.onload = initApp;
     </script>
 </body>
 </html>
-
