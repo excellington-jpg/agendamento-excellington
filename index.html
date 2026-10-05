@@ -112,7 +112,6 @@
             display: none !important;
         }
 
-        /* Modal Styles */
         .modal {
             position: fixed;
             top: 0;
@@ -138,7 +137,6 @@
             border: 2px solid var(--primary);
         }
 
-        /* Tabs / Navigation */
         .nav-tabs {
             display: flex;
             gap: 10px;
@@ -159,7 +157,6 @@
             color: white;
         }
 
-        /* Calendar & Slots */
         .slot-list {
             display: flex;
             flex-direction: column;
@@ -217,6 +214,28 @@
             padding-top: 15px;
             border-top: 1px dashed var(--border);
         }
+
+        .professionals-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px dashed var(--border);
+        }
+
+        .professional-card {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fafafa;
+            margin-bottom: 10px;
+        }
+
+        .professional-card strong {
+            color: var(--primary);
+        }
+
+        small {
+            line-height: 1.4;
+        }
     </style>
 </head>
 <body>
@@ -237,45 +256,60 @@
     <div id="licenseModal" class="modal hidden">
         <div class="modal-content">
             <h2>Renovação Mensal Pix</h2>
-            
+
             <div style="background: var(--bg-soft); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border);">
                 <p><strong>Nome do Estabelecimento:</strong> <span id="licenseEstName">-</span></p>
                 <p><strong>Data de Expiração:</strong> <span id="licenseExpDate">-</span></p>
             </div>
 
             <p>Faça uma doação de qualquer valor via Pix utilizando a chave fixa abaixo:</p>
+
             <div style="background: var(--bg-soft); padding: 10px; border-radius: 6px; margin-bottom: 10px; text-align: center; font-weight: bold;">
                 Chave Pix: <strong>16250510850</strong>
             </div>
+
             <button class="secondary" onclick="copyPixKey()">Copiar Chave Pix</button>
-            
+
             <p style="margin-top: 10px; font-size: 0.9rem;" id="licenseInstructionText">
                 Após realizar o Pix, envie o comprovante para o e-mail excellington@gmail.com, juntamente com o nome do estabelecimento e a data de expiração, conforme acima.
             </p>
 
-            <label for="activationCodeInput" style="margin-top: 15px; display:block;">Digite o Código de Liberação (10 dígitos):</label>
+            <label for="activationCodeInput" style="margin-top: 15px; display:block;">
+                Digite o Código de Liberação (10 dígitos):
+            </label>
+
             <input type="text" id="activationCodeInput" placeholder="Ex: 8678316375" maxlength="15">
+
             <button onclick="validateLicenseCode()">Ativar Aplicativo</button>
-            <button class="secondary" onclick="closeLicenseModalIfValid()">Fechar / Continuar</button>
+
+            <button class="secondary" onclick="closeLicenseModalIfValid()">
+                Fechar / Continuar
+            </button>
         </div>
     </div>
 
     <div id="appointmentModal" class="modal hidden">
         <div class="modal-content">
+
             <h2 id="modalSlotTitle">Novo Agendamento</h2>
-            
+
             <label>Data do Agendamento:</label>
             <input type="date" id="modalAppointmentDate" onchange="updateModalTimeSlots()">
 
             <label>Horário Disponível / Selecionado:</label>
             <select id="modalTimeSlotSelect"></select>
-            
+
+            <label>Profissional:</label>
+            <select id="appointmentProfessional">
+                <option value="">Profissional não informado</option>
+            </select>
+
             <label>Nome do Cliente / Paciente:</label>
             <input type="text" id="clientName" placeholder="Nome completo">
-            
+
             <label>Telefone para Contato:</label>
             <input type="tel" id="clientPhone" placeholder="(XX) 9XXXX-XXXX">
-            
+
             <label>Forma de Pagamento:</label>
             <select id="paymentMethod">
                 <option value="Dinheiro">Dinheiro</option>
@@ -283,10 +317,10 @@
                 <option value="Pix">Pix</option>
                 <option value="Convênio">Convênio</option>
             </select>
-            
+
             <label>Dados Complementares / Observações:</label>
             <textarea id="clientNotes" placeholder="Detalhes do procedimento, exames, etc."></textarea>
-            
+
             <div style="display: flex; gap: 10px;">
                 <button onclick="saveAppointment()">Salvar Agendamento</button>
                 <button class="secondary" onclick="closeAppointmentModal()">Cancelar</button>
@@ -295,8 +329,9 @@
     </div>
 
     <div class="container">
+
         <h1>
-            <span id="secretTrigger" style="cursor: pointer;" title="Clique 5 vezes para testar a doação">💚</span> 
+            <span id="secretTrigger" style="cursor: pointer;" title="Clique 5 vezes para testar a doação">💚</span>
             Agendamento Excellington
         </h1>
 
@@ -305,24 +340,36 @@
         </p>
 
         <div class="nav-tabs" style="margin-top: 15px;">
-            <button id="tabBtnSchedule" class="active" onclick="switchTab('schedule')">Agenda</button>
-            <button id="tabBtnSetup" onclick="switchTab('setup')">Estabelecimento</button>
-            <button id="tabBtnClients" onclick="switchTab('clients')">Contatos Salvos</button>
+            <button id="tabBtnSchedule" class="active" onclick="switchTab('schedule')">
+                Agenda
+            </button>
+
+            <button id="tabBtnSetup" onclick="switchTab('setup')">
+                Estabelecimento
+            </button>
+
+            <button id="tabBtnClients" onclick="switchTab('clients')">
+                Contatos Salvos
+            </button>
         </div>
 
         <div id="sectionSchedule">
+
             <h3>Selecione a Data</h3>
+
             <input type="date" id="calendarDateInput" onchange="loadDaySchedule()">
-            
+
             <div style="margin-top: 15px;">
                 <h3 id="selectedDateTitle">Horários do Dia</h3>
                 <div id="slotsContainer" class="slot-list"></div>
             </div>
+
         </div>
 
         <div id="sectionSetup" class="hidden">
+
             <h3>Configurações do Estabelecimento</h3>
-            
+
             <label>Nome do Estabelecimento:</label>
             <input type="text" id="setupName" placeholder="Ex: Clínica Excellington">
 
@@ -341,112 +388,247 @@
             <label>Tempo Médio de Atendimento (minutos):</label>
             <input type="number" id="setupDuration" value="30" min="5" step="5">
 
-            <!-- NOVA CONFIGURAÇÃO -->
             <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:5px;">
                 <input type="checkbox" id="setupMultiBooking" style="width:auto; margin:0;">
                 Atende mais de um cliente no mesmo horário.
             </label>
 
-            <div id="multiBookingOptions" class="hidden" style="background:var(--bg-soft); padding:12px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border);">
+            <div id="multiBookingOptions"
+                 class="hidden"
+                 style="background:var(--bg-soft); padding:12px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border);">
+
                 <label>Número máximo de clientes por horário:</label>
-                <input type="number" id="setupMaxClients" value="5" min="2" max="50" step="1">
+
+                <input type="number"
+                       id="setupMaxClients"
+                       value="5"
+                       min="2"
+                       max="50"
+                       step="1">
+
                 <small>
                     Ex.: clínicas de fisioterapia podem configurar 5 clientes no mesmo horário.
                 </small>
+
             </div>
 
-            <button onclick="saveEstablishmentSettings()">Salvar Configurações</button>
+            <!-- NOVA SEÇÃO DE PROFISSIONAIS -->
+
+            <div class="professionals-section">
+
+                <h3>Profissionais do Estabelecimento</h3>
+
+                <p>
+                    Cadastre os profissionais que poderão ser selecionados
+                    durante o agendamento.
+                </p>
+
+                <label>Nome do Profissional:</label>
+
+                <input type="text"
+                       id="newProfessionalName"
+                       placeholder="Ex: Dr. João da Silva">
+
+                <label>Especialidade / Função:</label>
+
+                <input type="text"
+                       id="newProfessionalRole"
+                       placeholder="Ex: Fisioterapeuta">
+
+                <button class="secondary"
+                        onclick="addProfessional()">
+                    + Adicionar Profissional
+                </button>
+
+                <div id="professionalsContainer"
+                     style="margin-top:15px;">
+                </div>
+
+            </div>
+
+            <button onclick="saveEstablishmentSettings()">
+                Salvar Configurações
+            </button>
 
             <div class="backup-section">
+
                 <h3>Backup e Segurança de Dados</h3>
-                <p>Como os dados ficam salvos apenas neste aparelho, faça backups periódicos:</p>
-                <button class="secondary" onclick="exportBackup()">Exportar Dados (Backup)</button>
-                <label style="margin-top: 10px; display:block;">Restaurar de arquivo:</label>
-                <input type="file" id="importFile" accept=".json" onchange="importBackup(event)">
+
+                <p>
+                    Como os dados ficam salvos apenas neste aparelho,
+                    faça backups periódicos:
+                </p>
+
+                <button class="secondary" onclick="exportBackup()">
+                    Exportar Dados (Backup)
+                </button>
+
+                <label style="margin-top: 10px; display:block;">
+                    Restaurar de arquivo:
+                </label>
+
+                <input type="file"
+                       id="importFile"
+                       accept=".json"
+                       onchange="importBackup(event)">
+
             </div>
+
         </div>
 
         <div id="sectionClients" class="hidden">
-            <h3>Lista de Clientes / Pacientes Recentes</h3>
-            <p>Estes contatos foram salvos automaticamente para facilitar novos agendamentos.</p>
-            
-            <label for="clientSearchInput" style="margin-top: 15px;">Pesquisar Contato:</label>
-            <input type="text" id="clientSearchInput" placeholder="Digite o nome do cliente..." oninput="renderClientsList()">
 
-            <div id="clientsContainer" class="slot-list" style="margin-top: 10px;"></div>
+            <h3>Lista de Clientes / Pacientes Recentes</h3>
+
+            <p>
+                Estes contatos foram salvos automaticamente
+                para facilitar novos agendamentos.
+            </p>
+
+            <label for="clientSearchInput" style="margin-top: 15px;">
+                Pesquisar Contato:
+            </label>
+
+            <input type="text"
+                   id="clientSearchInput"
+                   placeholder="Digite o nome do cliente..."
+                   oninput="renderClientsList()">
+
+            <div id="clientsContainer"
+                 class="slot-list"
+                 style="margin-top: 10px;">
+            </div>
+
         </div>
 
         <div style="margin-top: 25px; border-top: 1px solid var(--border); padding-top: 15px;">
-            <button class="danger" onclick="exitApp()">Sair / Fechar Aplicativo</button>
+            <button class="danger" onclick="exitApp()">
+                Sair / Fechar Aplicativo
+            </button>
         </div>
+
     </div>
 
     <script>
+
         const FIXED_PIX_KEY = '16250510850';
         const FIXED_SUPPORT_EMAIL = 'excellington@gmail.com';
 
         let appData = {
+
             termsAccepted: false,
+
             licenseExpires: '',
 
             establishment: {
+
                 name: 'Estabelecimento Excellington',
+
                 start: '08:00',
+
                 end: '18:00',
+
                 mealStart: '12:00',
+
                 mealEnd: '13:00',
+
                 duration: 30,
 
-                // NOVAS CONFIGURAÇÕES
                 multiBooking: false,
+
                 maxClientsPerSlot: 5,
+
+                /*
+                 * NOVO:
+                 * Lista de profissionais.
+                 */
+                professionals: [],
 
                 contact: FIXED_SUPPORT_EMAIL
             },
 
-            appointments: {}, 
-            clients: [] 
+            appointments: {},
+
+            clients: []
         };
 
         let currentEditing = {
+
             isEdit: false,
+
             oldDate: '',
+
             oldTime: '',
+
             oldIndex: -1
         };
 
+
         function initApp() {
 
-            const saved = localStorage.getItem('excellington_data');
+            const saved =
+                localStorage.getItem('excellington_data');
 
             if (saved) {
+
                 try {
+
                     appData = JSON.parse(saved);
+
                 } catch(e) {
-                    console.error("Erro ao carregar dados locais");
+
+                    console.error(
+                        "Erro ao carregar dados locais"
+                    );
                 }
             }
 
             /*
              * Compatibilidade com versões anteriores
              */
+
             if (!appData.establishment) {
+
                 appData.establishment = {};
             }
 
-            if (typeof appData.establishment.multiBooking !== 'boolean') {
+            if (
+                typeof appData.establishment.multiBooking !==
+                'boolean'
+            ) {
+
                 appData.establishment.multiBooking = false;
             }
 
-            if (!appData.establishment.maxClientsPerSlot) {
+            if (
+                !appData.establishment.maxClientsPerSlot
+            ) {
+
                 appData.establishment.maxClientsPerSlot = 5;
             }
 
+            /*
+             * NOVO:
+             * Garante que instalações antigas
+             * tenham uma lista de profissionais.
+             */
+
+            if (
+                !Array.isArray(
+                    appData.establishment.professionals
+                )
+            ) {
+
+                appData.establishment.professionals = [];
+            }
+
             if (!appData.appointments) {
+
                 appData.appointments = {};
             }
 
             if (!appData.clients) {
+
                 appData.clients = [];
             }
 
@@ -455,26 +637,57 @@
              * que tinham apenas um cliente por horário,
              * para o novo formato de lista.
              */
-            Object.keys(appData.appointments).forEach(date => {
 
-                Object.keys(appData.appointments[date]).forEach(time => {
+            Object.keys(appData.appointments).forEach(
+                date => {
 
-                    const appointment =
-                        appData.appointments[date][time];
+                    Object.keys(
+                        appData.appointments[date]
+                    ).forEach(
+                        time => {
 
-                    if (!Array.isArray(appointment)) {
-                        appData.appointments[date][time] = [appointment];
-                    }
-                });
-            });
+                            const appointment =
+                                appData.appointments[date][time];
 
-            appData.establishment.pixKey = FIXED_PIX_KEY;
-            appData.establishment.contact = FIXED_SUPPORT_EMAIL;
+                            if (!Array.isArray(appointment)) {
+
+                                appData.appointments[date][time] =
+                                    [appointment];
+                            }
+
+                            /*
+                             * Garante que agendamentos antigos
+                             * tenham o campo professional.
+                             */
+
+                            appData.appointments[date][time]
+                                .forEach(appt => {
+
+                                    if (
+                                        typeof appt.professional ===
+                                        'undefined'
+                                    ) {
+
+                                        appt.professional = '';
+                                    }
+
+                                });
+                        }
+                    );
+                }
+            );
+
+            appData.establishment.pixKey =
+                FIXED_PIX_KEY;
+
+            appData.establishment.contact =
+                FIXED_SUPPORT_EMAIL;
 
             if (!appData.termsAccepted) {
 
-                document.getElementById('termsModal')
-                    .classList.remove('hidden');
+                document.getElementById(
+                    'termsModal'
+                ).classList.remove('hidden');
 
             } else {
 
@@ -484,15 +697,19 @@
             loadEstablishmentUI();
 
             const todayStr =
-                new Date().toISOString().split('T')[0];
+                new Date()
+                    .toISOString()
+                    .split('T')[0];
 
-            document.getElementById('calendarDateInput').value =
-                todayStr;
+            document.getElementById(
+                'calendarDateInput'
+            ).value = todayStr;
 
             loadDaySchedule();
 
             setupSecretTrigger();
         }
+
 
         function saveData() {
 
@@ -508,33 +725,46 @@
             );
         }
 
+
         function setupSecretTrigger() {
 
             let clickCount = 0;
+
             let clickTimer = null;
 
             const trigger =
-                document.getElementById('secretTrigger');
+                document.getElementById(
+                    'secretTrigger'
+                );
 
-            trigger.addEventListener('click', () => {
+            trigger.addEventListener(
+                'click',
+                () => {
 
-                clickCount++;
+                    clickCount++;
 
-                clearTimeout(clickTimer);
+                    clearTimeout(clickTimer);
 
-                if (clickCount >= 5) {
+                    if (clickCount >= 5) {
 
-                    clickCount = 0;
-                    showLicenseModal();
-
-                } else {
-
-                    clickTimer = setTimeout(() => {
                         clickCount = 0;
-                    }, 1000);
+
+                        showLicenseModal();
+
+                    } else {
+
+                        clickTimer =
+                            setTimeout(
+                                () => {
+                                    clickCount = 0;
+                                },
+                                1000
+                            );
+                    }
                 }
-            });
+            );
         }
+
 
         function acceptTerms() {
 
@@ -551,31 +781,42 @@
 
             saveData();
 
-            document.getElementById('termsModal')
-                .classList.add('hidden');
+            document.getElementById(
+                'termsModal'
+            ).classList.add('hidden');
 
             checkLicense();
         }
+
 
         function checkLicense() {
 
             if (!appData.licenseExpires) {
 
                 showLicenseModal();
+
                 return;
             }
 
             const today =
-                new Date().toISOString().split('T')[0];
+                new Date()
+                    .toISOString()
+                    .split('T')[0];
 
-            if (today > appData.licenseExpires) {
+            if (
+                today > appData.licenseExpires
+            ) {
+
                 showLicenseModal();
             }
         }
 
+
         function showLicenseModal() {
 
-            document.getElementById('licenseEstName').innerText =
+            document.getElementById(
+                'licenseEstName'
+            ).innerText =
                 appData.establishment.name ||
                 "Estabelecimento Excellington";
 
@@ -593,25 +834,32 @@
                 }
             }
 
-            document.getElementById('licenseExpDate').innerText =
+            document.getElementById(
+                'licenseExpDate'
+            ).innerText =
                 expFormatted;
 
-            document.getElementById('licenseModal')
-                .classList.remove('hidden');
+            document.getElementById(
+                'licenseModal'
+            ).classList.remove('hidden');
         }
+
 
         function closeLicenseModalIfValid() {
 
             const today =
-                new Date().toISOString().split('T')[0];
+                new Date()
+                    .toISOString()
+                    .split('T')[0];
 
             if (
                 appData.licenseExpires &&
                 today <= appData.licenseExpires
             ) {
 
-                document.getElementById('licenseModal')
-                    .classList.add('hidden');
+                document.getElementById(
+                    'licenseModal'
+                ).classList.add('hidden');
 
             } else {
 
@@ -621,6 +869,7 @@
             }
         }
 
+
         function copyPixKey() {
 
             if (
@@ -628,7 +877,8 @@
                 navigator.clipboard.writeText
             ) {
 
-                navigator.clipboard.writeText(FIXED_PIX_KEY)
+                navigator.clipboard
+                    .writeText(FIXED_PIX_KEY)
                     .then(() => {
 
                         alert(
@@ -656,20 +906,30 @@
             }
         }
 
-        function fallbackCopy(text, successMsg) {
+
+        function fallbackCopy(
+            text,
+            successMsg
+        ) {
 
             const textArea =
-                document.createElement("textarea");
+                document.createElement(
+                    "textarea"
+                );
 
             textArea.value = text;
+
             textArea.style.position = "fixed";
             textArea.style.top = "0";
             textArea.style.left = "0";
             textArea.style.opacity = "0";
 
-            document.body.appendChild(textArea);
+            document.body.appendChild(
+                textArea
+            );
 
             textArea.focus();
+
             textArea.select();
 
             try {
@@ -691,10 +951,16 @@
                 alert("Chave Pix: " + text);
             }
 
-            document.body.removeChild(textArea);
+            document.body.removeChild(
+                textArea
+            );
         }
 
-        function calculateExpectedCode(estName, expDateStr) {
+
+        function calculateExpectedCode(
+            estName,
+            expDateStr
+        ) {
 
             if (!expDateStr) return "";
 
@@ -726,6 +992,7 @@
 
             return String(cubeValue);
         }
+
 
         function validateLicenseCode() {
 
@@ -796,6 +1063,7 @@
             }
         }
 
+
         function switchTab(tabName) {
 
             document.getElementById(
@@ -844,6 +1112,8 @@
                     'tabBtnSetup'
                 ).classList.add('active');
 
+                renderProfessionalsList();
+
             } else if (tabName === 'clients') {
 
                 document.getElementById(
@@ -858,49 +1128,70 @@
             }
         }
 
+
         function loadEstablishmentUI() {
 
             document.getElementById(
                 'setupName'
             ).value =
-                appData.establishment.name;
+                appData.establishment.name ||
+                'Estabelecimento Excellington';
 
             document.getElementById(
                 'setupStart'
             ).value =
-                appData.establishment.start;
+                appData.establishment.start ||
+                '08:00';
 
             document.getElementById(
                 'setupEnd'
             ).value =
-                appData.establishment.end;
+                appData.establishment.end ||
+                '18:00';
 
             document.getElementById(
                 'setupMealStart'
             ).value =
-                appData.establishment.mealStart;
+                appData.establishment.mealStart ||
+                '12:00';
 
             document.getElementById(
                 'setupMealEnd'
             ).value =
-                appData.establishment.mealEnd;
+                appData.establishment.mealEnd ||
+                '13:00';
 
             document.getElementById(
                 'setupDuration'
             ).value =
-                appData.establishment.duration;
+                appData.establishment.duration ||
+                30;
 
             if (
                 typeof appData.establishment.multiBooking !==
                 'boolean'
             ) {
-                appData.establishment.multiBooking = false;
+
+                appData.establishment.multiBooking =
+                    false;
             }
 
             if (
                 !appData.establishment.maxClientsPerSlot
             ) {
-                appData.establishment.maxClientsPerSlot = 5;
+
+                appData.establishment.maxClientsPerSlot =
+                    5;
+            }
+
+            if (
+                !Array.isArray(
+                    appData.establishment.professionals
+                )
+            ) {
+
+                appData.establishment.professionals =
+                    [];
             }
 
             document.getElementById(
@@ -924,7 +1215,472 @@
                 'estSubtitle'
             ).innerText =
                 appData.establishment.name;
+
+            renderProfessionalsList();
         }
+
+
+        /*
+         * ==========================================================
+         * PROFISSIONAIS
+         * ==========================================================
+         */
+
+
+        function addProfessional() {
+
+            const nameInput =
+                document.getElementById(
+                    'newProfessionalName'
+                );
+
+            const roleInput =
+                document.getElementById(
+                    'newProfessionalRole'
+                );
+
+            const name =
+                nameInput.value.trim();
+
+            const role =
+                roleInput.value.trim();
+
+            if (!name) {
+
+                alert(
+                    "Informe o nome do profissional."
+                );
+
+                nameInput.focus();
+
+                return;
+            }
+
+            if (
+                !Array.isArray(
+                    appData.establishment.professionals
+                )
+            ) {
+
+                appData.establishment.professionals =
+                    [];
+            }
+
+            /*
+             * Evita cadastrar duas vezes
+             * exatamente o mesmo profissional.
+             */
+
+            const alreadyExists =
+                appData.establishment.professionals.some(
+                    professional =>
+                        professional.name
+                            .toLowerCase()
+                            .trim() ===
+                        name.toLowerCase().trim()
+                );
+
+            if (alreadyExists) {
+
+                alert(
+                    "Este profissional já está cadastrado."
+                );
+
+                return;
+            }
+
+            appData.establishment.professionals.push({
+
+                id:
+                    'prof_' +
+                    Date.now() +
+                    '_' +
+                    Math.random()
+                        .toString(36)
+                        .substring(2, 8),
+
+                name: name,
+
+                role: role
+            });
+
+            saveData();
+
+            nameInput.value = '';
+            roleInput.value = '';
+
+            renderProfessionalsList();
+
+            updateProfessionalSelect();
+
+            alert(
+                "Profissional cadastrado com sucesso!"
+            );
+        }
+
+
+        function renderProfessionalsList() {
+
+            const container =
+                document.getElementById(
+                    'professionalsContainer'
+                );
+
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            const professionals =
+                Array.isArray(
+                    appData.establishment.professionals
+                )
+                    ? appData.establishment.professionals
+                    : [];
+
+            if (
+                professionals.length === 0
+            ) {
+
+                container.innerHTML = `
+                    <p style="
+                        padding:10px;
+                        background:#fafafa;
+                        border:1px dashed var(--border);
+                        border-radius:8px;
+                    ">
+                        Nenhum profissional cadastrado.
+                    </p>
+                `;
+
+                return;
+            }
+
+            professionals.forEach(
+                (professional, index) => {
+
+                    const div =
+                        document.createElement(
+                            'div'
+                        );
+
+                    div.className =
+                        'professional-card';
+
+                    div.innerHTML = `
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            gap:10px;
+                            align-items:center;
+                        ">
+
+                            <div>
+                                <strong>
+                                    ${escapeHTML(
+                                        professional.name
+                                    )}
+                                </strong>
+
+                                ${
+                                    professional.role
+                                        ? `
+                                            <br>
+                                            <small>
+                                                ${escapeHTML(
+                                                    professional.role
+                                                )}
+                                            </small>
+                                        `
+                                        : ''
+                                }
+                            </div>
+
+                            <button
+                                class="danger"
+                                style="
+                                    width:auto;
+                                    margin:0;
+                                    white-space:nowrap;
+                                "
+                                onclick="deleteProfessional(${index})">
+                                Excluir
+                            </button>
+
+                        </div>
+                    `;
+
+                    container.appendChild(div);
+                }
+            );
+        }
+
+
+        function deleteProfessional(index) {
+
+            const professionals =
+                appData.establishment.professionals;
+
+            if (
+                !professionals ||
+                !professionals[index]
+            ) {
+
+                return;
+            }
+
+            const professional =
+                professionals[index];
+
+            const professionalName =
+                professional.name;
+
+            /*
+             * Verifica se existem agendamentos
+             * vinculados a este profissional.
+             */
+
+            let hasAppointments = false;
+
+            Object.keys(
+                appData.appointments || {}
+            ).forEach(date => {
+
+                Object.keys(
+                    appData.appointments[date] || {}
+                ).forEach(time => {
+
+                    let appointments =
+                        appData.appointments[date][time];
+
+                    if (
+                        !Array.isArray(appointments)
+                    ) {
+
+                        appointments = [
+                            appointments
+                        ];
+                    }
+
+                    appointments.forEach(
+                        appointment => {
+
+                            if (
+                                appointment &&
+                                appointment.professional ===
+                                professional.id
+                            ) {
+
+                                hasAppointments = true;
+                            }
+                        }
+                    );
+                });
+            });
+
+            let message =
+                `Deseja excluir o profissional "${professionalName}"?`;
+
+            if (hasAppointments) {
+
+                message +=
+                    "\n\nATENÇÃO: existem agendamentos já registrados para este profissional. A exclusão removerá o profissional da lista, mas os agendamentos antigos serão preservados e continuarão registrados como vinculados a este profissional.";
+            }
+
+            if (!confirm(message)) {
+
+                return;
+            }
+
+            professionals.splice(
+                index,
+                1
+            );
+
+            saveData();
+
+            renderProfessionalsList();
+
+            updateProfessionalSelect();
+        }
+
+
+        /*
+         * Atualiza o campo de seleção de profissionais
+         * existente no formulário de agendamento.
+         */
+
+        function updateProfessionalSelect(
+            selectedId = ''
+        ) {
+
+            const select =
+                document.getElementById(
+                    'appointmentProfessional'
+                );
+
+            if (!select) return;
+
+            select.innerHTML = '';
+
+            const professionals =
+                Array.isArray(
+                    appData.establishment.professionals
+                )
+                    ? appData.establishment.professionals
+                    : [];
+
+            const defaultOption =
+                document.createElement(
+                    'option'
+                );
+
+            defaultOption.value = '';
+
+            defaultOption.textContent =
+                professionals.length > 0
+                    ? 'Selecione o profissional'
+                    : 'Profissional não informado';
+
+            select.appendChild(
+                defaultOption
+            );
+
+            professionals.forEach(
+                professional => {
+
+                    const option =
+                        document.createElement(
+                            'option'
+                        );
+
+                    option.value =
+                        professional.id;
+
+                    option.textContent =
+                        professional.role
+                            ? `${professional.name} — ${professional.role}`
+                            : professional.name;
+
+                    select.appendChild(option);
+                }
+            );
+
+            if (selectedId) {
+
+                select.value =
+                    selectedId;
+
+                /*
+                 * Se o profissional foi excluído
+                 * posteriormente, mantém o registro
+                 * antigo como não selecionável.
+                 */
+                if (
+                    select.value !== selectedId
+                ) {
+
+                    const oldOption =
+                        document.createElement(
+                            'option'
+                        );
+
+                    oldOption.value =
+                        selectedId;
+
+                    oldOption.textContent =
+                        'Profissional anteriormente cadastrado';
+
+                    select.appendChild(
+                        oldOption
+                    );
+
+                    select.value =
+                        selectedId;
+                }
+            }
+        }
+
+
+        function getProfessionalName(
+            professionalId
+        ) {
+
+            if (!professionalId) {
+
+                return 'Profissional não informado';
+            }
+
+            const professionals =
+                appData.establishment.professionals ||
+                [];
+
+            const professional =
+                professionals.find(
+                    p =>
+                        p.id === professionalId
+                );
+
+            if (!professional) {
+
+                return 'Profissional anteriormente cadastrado';
+            }
+
+            return professional.role
+                ? `${professional.name} — ${professional.role}`
+                : professional.name;
+        }
+
+
+        /*
+         * Verifica se um profissional já está ocupado
+         * naquele mesmo horário.
+         */
+        function professionalIsBusy(
+            date,
+            time,
+            professionalId,
+            ignoreIndex = -1
+        ) {
+
+            if (!professionalId) {
+
+                return false;
+            }
+
+            const dayAppointments =
+                appData.appointments[date] || {};
+
+            let appointments =
+                dayAppointments[time] || [];
+
+            if (
+                !Array.isArray(appointments)
+            ) {
+
+                appointments = [
+                    appointments
+                ];
+            }
+
+            return appointments.some(
+                (appointment, index) => {
+
+                    if (
+                        index === ignoreIndex
+                    ) {
+
+                        return false;
+                    }
+
+                    return (
+                        appointment &&
+                        appointment.professional ===
+                        professionalId
+                    );
+                }
+            );
+        }
+
 
         function saveEstablishmentSettings() {
 
@@ -973,9 +1729,22 @@
                 ) || 5;
 
             if (
-                appData.establishment.maxClientsPerSlot < 2
+                appData.establishment.maxClientsPerSlot <
+                2
             ) {
-                appData.establishment.maxClientsPerSlot = 2;
+
+                appData.establishment.maxClientsPerSlot =
+                    2;
+            }
+
+            if (
+                !Array.isArray(
+                    appData.establishment.professionals
+                )
+            ) {
+
+                appData.establishment.professionals =
+                    [];
             }
 
             appData.establishment.contact =
@@ -994,6 +1763,7 @@
 
             switchTab('schedule');
         }
+
 
         function loadDaySchedule() {
 
@@ -1040,7 +1810,10 @@
                     dayAppointments[time] || [];
 
                 if (!Array.isArray(appointments)) {
-                    appointments = [appointments];
+
+                    appointments = [
+                        appointments
+                    ];
                 }
 
                 const count =
@@ -1055,31 +1828,43 @@
                     ) || 5;
 
                 const slotDiv =
-                    document.createElement('div');
+                    document.createElement(
+                        'div'
+                    );
 
                 slotDiv.className =
                     `slot-item ${
-                        count > 0 ? 'booked' : ''
+                        count > 0
+                            ? 'booked'
+                            : ''
                     }`;
 
                 /*
                  * HORÁRIO LIVRE
                  */
+
                 if (count === 0) {
 
                     slotDiv.innerHTML = `
                         <div>
                             <strong>${time}</strong>
+
                             <span class="badge free">
                                 Disponível
                             </span>
                         </div>
 
                         <div class="actions-row">
+
                             <button
-                                onclick="openAppointmentModal('${dateVal}', '${time}', false)">
+                                onclick="openAppointmentModal(
+                                    '${dateVal}',
+                                    '${time}',
+                                    false
+                                )">
                                 Agendar
                             </button>
+
                         </div>
                     `;
 
@@ -1090,23 +1875,45 @@
                     appointments.forEach(
                         (appt, index) => {
 
+                            const professionalName =
+                                getProfessionalName(
+                                    appt.professional || ''
+                                );
+
                             clientsHTML += `
                                 <div style="
                                     padding:8px 0;
                                     border-bottom:1px solid var(--border);
                                 ">
+
                                     <strong>
-                                        ${time} — ${escapeHTML(appt.name)}
+                                        ${time} —
+                                        ${escapeHTML(
+                                            appt.name
+                                        )}
                                     </strong>
 
                                     <br>
 
                                     <small>
+                                        👤 Profissional:
+                                        ${escapeHTML(
+                                            professionalName
+                                        )}
+                                    </small>
+
+                                    <br>
+
+                                    <small>
                                         Tel:
-                                        ${escapeHTML(appt.phone)}
+                                        ${escapeHTML(
+                                            appt.phone
+                                        )}
                                         |
                                         Pgto:
-                                        ${escapeHTML(appt.payment)}
+                                        ${escapeHTML(
+                                            appt.payment
+                                        )}
                                     </small>
 
                                     ${
@@ -1115,7 +1922,9 @@
                                                 <br>
                                                 <small>
                                                     Obs:
-                                                    ${escapeHTML(appt.notes)}
+                                                    ${escapeHTML(
+                                                        appt.notes
+                                                    )}
                                                 </small>
                                             `
                                             : ''
@@ -1129,7 +1938,9 @@
                                         <button
                                             class="secondary"
                                             onclick="sendSMS(
-                                                '${escapeJS(appt.phone)}',
+                                                '${escapeJS(
+                                                    appt.phone
+                                                )}',
                                                 '${dateVal}',
                                                 '${time}'
                                             )">
@@ -1157,6 +1968,7 @@
                                         </button>
 
                                     </div>
+
                                 </div>
                             `;
                         }
@@ -1179,7 +1991,9 @@
                                 <strong>${time}</strong>
 
                                 <span class="badge busy">
+
                                     ${count}
+
                                     ${
                                         count === 1
                                             ? 'cliente'
@@ -1191,6 +2005,7 @@
                                             ? ` / ${maxClients}`
                                             : ''
                                     }
+
                                 </span>
 
                             </div>
@@ -1206,6 +2021,7 @@
                                             margin-top:10px;
                                             flex-wrap:wrap;
                                         ">
+
                                             <button
                                                 onclick="openAppointmentModal(
                                                     '${dateVal}',
@@ -1214,6 +2030,7 @@
                                                 )">
                                                 + Adicionar
                                             </button>
+
                                         </div>
                                     `
                                     : ''
@@ -1223,9 +2040,12 @@
                     `;
                 }
 
-                container.appendChild(slotDiv);
+                container.appendChild(
+                    slotDiv
+                );
             });
         }
+
 
         function generateTimeSlots(
             start,
@@ -1259,8 +2079,11 @@
                         current < mEnd
                     )
                 ) {
+
                     slots.push(
-                        minutesToTime(current)
+                        minutesToTime(
+                            current
+                        )
                     );
                 }
 
@@ -1270,28 +2093,45 @@
             return slots;
         }
 
-        function timeToMinutes(timeStr) {
+
+        function timeToMinutes(
+            timeStr
+        ) {
 
             const [h, m] =
-                timeStr.split(':').map(Number);
+                timeStr
+                    .split(':')
+                    .map(Number);
 
             return h * 60 + m;
         }
 
-        function minutesToTime(minutes) {
+
+        function minutesToTime(
+            minutes
+        ) {
 
             const h =
                 String(
-                    Math.floor(minutes / 60)
-                ).padStart(2, '0');
+                    Math.floor(
+                        minutes / 60
+                    )
+                ).padStart(
+                    2,
+                    '0'
+                );
 
             const m =
                 String(
                     minutes % 60
-                ).padStart(2, '0');
+                ).padStart(
+                    2,
+                    '0'
+                );
 
             return `${h}:${m}`;
         }
+
 
         function updateModalTimeSlots(
             preselectTime = ''
@@ -1324,77 +2164,92 @@
                 );
 
             const dayAppts =
-                appData.appointments[dateVal] || {};
+                appData.appointments[dateVal] ||
+                {};
 
-            slots.forEach(time => {
+            slots.forEach(
+                time => {
 
-                let appointments =
-                    dayAppts[time] || [];
+                    let appointments =
+                        dayAppts[time] || [];
 
-                if (!Array.isArray(appointments)) {
-                    appointments = [appointments];
-                }
+                    if (
+                        !Array.isArray(
+                            appointments
+                        )
+                    ) {
 
-                const count =
-                    appointments.length;
+                        appointments = [
+                            appointments
+                        ];
+                    }
 
-                const isCurrentSlot =
-                    currentEditing.isEdit &&
-                    currentEditing.oldDate === dateVal &&
-                    currentEditing.oldTime === time;
+                    const count =
+                        appointments.length;
 
-                let available = false;
+                    const isCurrentSlot =
+                        currentEditing.isEdit &&
+                        currentEditing.oldDate ===
+                            dateVal &&
+                        currentEditing.oldTime ===
+                            time;
 
-                if (isCurrentSlot) {
+                    let available = false;
 
-                    available = true;
+                    if (isCurrentSlot) {
 
-                } else if (
-                    est.multiBooking === true
-                ) {
+                        available = true;
 
-                    const maxClients =
-                        parseInt(
-                            est.maxClientsPerSlot
-                        ) || 5;
-
-                    available =
-                        count < maxClients;
-
-                } else {
-
-                    available =
-                        count === 0;
-                }
-
-                if (available) {
-
-                    const opt =
-                        document.createElement(
-                            'option'
-                        );
-
-                    opt.value = time;
-
-                    if (count === 0) {
-
-                        opt.textContent =
-                            `${time} — Disponível`;
-
-                    } else {
+                    } else if (
+                        est.multiBooking === true
+                    ) {
 
                         const maxClients =
                             parseInt(
                                 est.maxClientsPerSlot
                             ) || 5;
 
-                        opt.textContent =
-                            `${time} — ${count}/${maxClients} clientes`;
+                        available =
+                            count < maxClients;
+
+                    } else {
+
+                        available =
+                            count === 0;
                     }
 
-                    select.appendChild(opt);
+                    if (available) {
+
+                        const opt =
+                            document.createElement(
+                                'option'
+                            );
+
+                        opt.value =
+                            time;
+
+                        if (count === 0) {
+
+                            opt.textContent =
+                                `${time} — Disponível`;
+
+                        } else {
+
+                            const maxClients =
+                                parseInt(
+                                    est.maxClientsPerSlot
+                                ) || 5;
+
+                            opt.textContent =
+                                `${time} — ${count}/${maxClients} clientes`;
+                        }
+
+                        select.appendChild(
+                            opt
+                        );
+                    }
                 }
-            });
+            );
 
             if (
                 select.options.length === 0
@@ -1410,7 +2265,9 @@
                 opt.textContent =
                     "Nenhum horário disponível nesta data";
 
-                select.appendChild(opt);
+                select.appendChild(
+                    opt
+                );
 
             } else if (preselectTime) {
 
@@ -1418,6 +2275,7 @@
                     preselectTime;
             }
         }
+
 
         function openAppointmentModal(
             date,
@@ -1427,9 +2285,13 @@
         ) {
 
             currentEditing = {
+
                 isEdit,
+
                 oldDate: date,
+
                 oldTime: time,
+
                 oldIndex: appointmentIndex
             };
 
@@ -1440,9 +2302,19 @@
 
             document.getElementById(
                 'modalAppointmentDate'
-            ).value = date;
+            ).value =
+                date;
 
-            updateModalTimeSlots(time);
+            updateModalTimeSlots(
+                time
+            );
+
+            /*
+             * NOVO:
+             * Atualiza a lista de profissionais.
+             */
+
+            updateProfessionalSelect();
 
             if (
                 isEdit &&
@@ -1452,14 +2324,27 @@
             ) {
 
                 let appointments =
-                    appData.appointments[date][time];
+                    appData.appointments[
+                        date
+                    ][
+                        time
+                    ];
 
-                if (!Array.isArray(appointments)) {
-                    appointments = [appointments];
+                if (
+                    !Array.isArray(
+                        appointments
+                    )
+                ) {
+
+                    appointments = [
+                        appointments
+                    ];
                 }
 
                 const appt =
-                    appointments[appointmentIndex];
+                    appointments[
+                        appointmentIndex
+                    ];
 
                 if (appt) {
 
@@ -1476,12 +2361,23 @@
                     document.getElementById(
                         'paymentMethod'
                     ).value =
-                        appt.payment || 'Dinheiro';
+                        appt.payment ||
+                        'Dinheiro';
 
                     document.getElementById(
                         'clientNotes'
                     ).value =
                         appt.notes || '';
+
+                    /*
+                     * NOVO:
+                     * Seleciona o profissional
+                     * já vinculado ao agendamento.
+                     */
+
+                    updateProfessionalSelect(
+                        appt.professional || ''
+                    );
                 }
 
             } else {
@@ -1496,24 +2392,38 @@
 
                 document.getElementById(
                     'paymentMethod'
-                ).value = 'Dinheiro';
+                ).value =
+                    'Dinheiro';
 
                 document.getElementById(
                     'clientNotes'
                 ).value = '';
+
+                /*
+                 * Novo agendamento:
+                 * nenhum profissional inicialmente selecionado.
+                 */
+
+                updateProfessionalSelect();
             }
 
             document.getElementById(
                 'appointmentModal'
-            ).classList.remove('hidden');
+            ).classList.remove(
+                'hidden'
+            );
         }
+
 
         function closeAppointmentModal() {
 
             document.getElementById(
                 'appointmentModal'
-            ).classList.add('hidden');
+            ).classList.add(
+                'hidden'
+            );
         }
+
 
         function saveAppointment() {
 
@@ -1525,6 +2435,16 @@
             const newTime =
                 document.getElementById(
                     'modalTimeSlotSelect'
+                ).value;
+
+            /*
+             * NOVO:
+             * Captura o profissional selecionado.
+             */
+
+            const professional =
+                document.getElementById(
+                    'appointmentProfessional'
                 ).value;
 
             const name =
@@ -1547,7 +2467,10 @@
                     'clientNotes'
                 ).value.trim();
 
-            if (!newDate || !newTime) {
+            if (
+                !newDate ||
+                !newTime
+            ) {
 
                 alert(
                     "Por favor, selecione uma data e um horário válido."
@@ -1556,7 +2479,10 @@
                 return;
             }
 
-            if (!name || !phone) {
+            if (
+                !name ||
+                !phone
+            ) {
 
                 alert(
                     "Por favor, preencha o nome e o telefone do cliente/paciente."
@@ -1565,16 +2491,88 @@
                 return;
             }
 
+            /*
+             * Se existem profissionais cadastrados,
+             * exige a seleção de um profissional.
+             */
+
+            const professionals =
+                appData.establishment.professionals ||
+                [];
+
+            if (
+                professionals.length > 0 &&
+                !professional
+            ) {
+
+                alert(
+                    "Por favor, selecione o profissional responsável pelo atendimento."
+                );
+
+                return;
+            }
+
+            /*
+             * Verifica se o profissional já está ocupado
+             * no novo horário.
+             *
+             * Durante uma edição, ignora o próprio agendamento
+             * que está sendo editado.
+             */
+
+            let ignoreProfessionalIndex =
+                -1;
+
+            if (
+                currentEditing.isEdit &&
+                currentEditing.oldDate === newDate &&
+                currentEditing.oldTime === newTime
+            ) {
+
+                ignoreProfessionalIndex =
+                    currentEditing.oldIndex;
+            }
+
+            if (
+                professional &&
+                professionalIsBusy(
+                    newDate,
+                    newTime,
+                    professional,
+                    ignoreProfessionalIndex
+                )
+            ) {
+
+                alert(
+                    "Este profissional já possui um agendamento neste horário. Selecione outro profissional ou outro horário."
+                );
+
+                return;
+            }
+
+            /*
+             * NOVO CAMPO:
+             * professional
+             */
+
             const appointmentData = {
+
                 name,
+
                 phone,
+
                 payment,
-                notes
+
+                notes,
+
+                professional
             };
+
 
             /*
              * EDIÇÃO
              */
+
             if (
                 currentEditing.isEdit &&
                 currentEditing.oldDate &&
@@ -1594,7 +2592,12 @@
 
                 if (oldAppointments) {
 
-                    if (!Array.isArray(oldAppointments)) {
+                    if (
+                        !Array.isArray(
+                            oldAppointments
+                        )
+                    ) {
+
                         oldAppointments = [
                             oldAppointments
                         ];
@@ -1621,7 +2624,8 @@
                             currentEditing.oldDate
                         ][
                             currentEditing.oldTime
-                        ] = oldAppointments;
+                        ] =
+                            oldAppointments;
                     }
 
                     if (
@@ -1639,19 +2643,27 @@
                 }
             }
 
+
             /*
              * GARANTE A EXISTÊNCIA DA DATA
              */
+
             if (
-                !appData.appointments[newDate]
+                !appData.appointments[
+                    newDate
+                ]
             ) {
 
-                appData.appointments[newDate] = {};
+                appData.appointments[
+                    newDate
+                ] = {};
             }
+
 
             /*
              * GARANTE QUE O HORÁRIO SEJA UM ARRAY
              */
+
             if (
                 !appData.appointments[
                     newDate
@@ -1661,6 +2673,7 @@
                 appData.appointments[
                     newDate
                 ][newTime] = [];
+
             }
 
             if (
@@ -1674,24 +2687,32 @@
                 appData.appointments[
                     newDate
                 ][newTime] = [
+
                     appData.appointments[
                         newDate
                     ][newTime]
+
                 ];
             }
+
 
             const appointments =
                 appData.appointments[
                     newDate
                 ][newTime];
 
+
             /*
              * NOVO AGENDAMENTO
              */
-            if (!currentEditing.isEdit) {
+
+            if (
+                !currentEditing.isEdit
+            ) {
 
                 if (
-                    appData.establishment.multiBooking === true
+                    appData.establishment.multiBooking ===
+                    true
                 ) {
 
                     const maxClients =
@@ -1737,22 +2758,28 @@
                  * coloca o cliente novamente
                  * no novo horário.
                  */
+
                 appointments.push(
                     appointmentData
                 );
             }
 
+
             /*
              * SALVA O CLIENTE NA LISTA DE CONTATOS
              */
+
             if (
                 !appData.clients.some(
-                    c => c.phone === phone
+                    c =>
+                        c.phone === phone
                 )
             ) {
 
                 appData.clients.push({
+
                     name,
+
                     phone
                 });
 
@@ -1760,13 +2787,17 @@
 
                 const clientObj =
                     appData.clients.find(
-                        c => c.phone === phone
+                        c =>
+                            c.phone === phone
                     );
 
                 if (clientObj) {
-                    clientObj.name = name;
+
+                    clientObj.name =
+                        name;
                 }
             }
+
 
             saveData();
 
@@ -1774,7 +2805,8 @@
 
             document.getElementById(
                 'calendarDateInput'
-            ).value = newDate;
+            ).value =
+                newDate;
 
             loadDaySchedule();
 
@@ -1782,6 +2814,7 @@
                 "Agendamento salvo com sucesso!"
             );
         }
+
 
         function deleteAppointment(
             date,
@@ -1794,19 +2827,33 @@
                     "Deseja realmente excluir este agendamento?"
                 )
             ) {
+
                 return;
             }
 
             if (
-                appData.appointments[date] &&
-                appData.appointments[date][time]
+                appData.appointments[
+                    date
+                ] &&
+                appData.appointments[
+                    date
+                ][time]
             ) {
 
                 let appointments =
-                    appData.appointments[date][time];
+                    appData.appointments[
+                        date
+                    ][time];
 
-                if (!Array.isArray(appointments)) {
-                    appointments = [appointments];
+                if (
+                    !Array.isArray(
+                        appointments
+                    )
+                ) {
+
+                    appointments = [
+                        appointments
+                    ];
                 }
 
                 appointments.splice(
@@ -1826,12 +2873,15 @@
 
                     appData.appointments[
                         date
-                    ][time] = appointments;
+                    ][time] =
+                        appointments;
                 }
 
                 if (
                     Object.keys(
-                        appData.appointments[date]
+                        appData.appointments[
+                            date
+                        ]
                     ).length === 0
                 ) {
 
@@ -1845,6 +2895,7 @@
                 loadDaySchedule();
             }
         }
+
 
         function sendSMS(
             phone,
@@ -1865,11 +2916,14 @@
                 `Olá! Confirmando seu agendamento em ${estName} para o dia ${formattedDate} às ${time}. Agradecemos a preferência!`;
 
             const smsUrl =
-                `sms:${phone}?body=${encodeURIComponent(message)}`;
+                `sms:${phone}?body=${encodeURIComponent(
+                    message
+                )}`;
 
             window.location.href =
                 smsUrl;
         }
+
 
         function renderClientsList() {
 
@@ -1887,7 +2941,9 @@
 
             const filter =
                 searchInput
-                    ? searchInput.value.toLowerCase().trim()
+                    ? searchInput.value
+                        .toLowerCase()
+                        .trim()
                     : '';
 
             const filteredClients =
@@ -1911,7 +2967,7 @@
             }
 
             filteredClients.forEach(
-                (client) => {
+                client => {
 
                     const originalIndex =
                         appData.clients.findIndex(
@@ -1921,21 +2977,31 @@
                         );
 
                     const div =
-                        document.createElement('div');
+                        document.createElement(
+                            'div'
+                        );
 
                     div.className =
                         'slot-item';
 
                     div.innerHTML = `
                         <div>
+
                             <strong>
-                                ${escapeHTML(client.name)}
+                                ${escapeHTML(
+                                    client.name
+                                )}
                             </strong>
+
                             <br>
+
                             <small>
                                 Tel:
-                                ${escapeHTML(client.phone)}
+                                ${escapeHTML(
+                                    client.phone
+                                )}
                             </small>
+
                         </div>
 
                         <div class="actions-row">
@@ -1943,32 +3009,43 @@
                             <button
                                 class="secondary"
                                 onclick="quickBookClient(
-                                    '${escapeJS(client.name)}',
-                                    '${escapeJS(client.phone)}'
+                                    '${escapeJS(
+                                        client.name
+                                    )}',
+                                    '${escapeJS(
+                                        client.phone
+                                    )}'
                                 )">
                                 Agendar Rápido
                             </button>
 
                             <button
                                 class="danger"
-                                onclick="deleteClient(${originalIndex})">
+                                onclick="deleteClient(
+                                    ${originalIndex}
+                                )">
                                 Excluir
                             </button>
 
                         </div>
                     `;
 
-                    container.appendChild(div);
+                    container.appendChild(
+                        div
+                    );
                 }
             );
         }
+
 
         function quickBookClient(
             name,
             phone
         ) {
 
-            switchTab('schedule');
+            switchTab(
+                'schedule'
+            );
 
             const todayStr =
                 new Date()
@@ -1977,7 +3054,8 @@
 
             document.getElementById(
                 'calendarDateInput'
-            ).value = todayStr;
+            ).value =
+                todayStr;
 
             openAppointmentModal(
                 todayStr,
@@ -1987,14 +3065,19 @@
 
             document.getElementById(
                 'clientName'
-            ).value = name;
+            ).value =
+                name;
 
             document.getElementById(
                 'clientPhone'
-            ).value = phone;
+            ).value =
+                phone;
         }
 
-        function deleteClient(index) {
+
+        function deleteClient(
+            index
+        ) {
 
             if (
                 confirm(
@@ -2013,16 +3096,21 @@
             }
         }
 
+
         function exportBackup() {
 
             const dataStr =
                 "data:text/json;charset=utf-8," +
                 encodeURIComponent(
-                    JSON.stringify(appData)
+                    JSON.stringify(
+                        appData
+                    )
                 );
 
             const downloadAnchor =
-                document.createElement('a');
+                document.createElement(
+                    'a'
+                );
 
             downloadAnchor.setAttribute(
                 "href",
@@ -2047,12 +3135,17 @@
             downloadAnchor.remove();
         }
 
-        function importBackup(event) {
+
+        function importBackup(
+            event
+        ) {
 
             const fileReader =
                 new FileReader();
 
-            if (event.target.files[0]) {
+            if (
+                event.target.files[0]
+            ) {
 
                 fileReader.readAsText(
                     event.target.files[0],
@@ -2060,7 +3153,7 @@
                 );
 
                 fileReader.onload =
-                    function (e) {
+                    function(e) {
 
                         try {
 
@@ -2074,7 +3167,27 @@
                                 parsed.establishment
                             ) {
 
-                                appData = parsed;
+                                appData =
+                                    parsed;
+
+                                /*
+                                 * Compatibilidade com
+                                 * backups antigos.
+                                 */
+
+                                if (
+                                    !Array.isArray(
+                                        appData
+                                            .establishment
+                                            .professionals
+                                    )
+                                ) {
+
+                                    appData
+                                        .establishment
+                                        .professionals =
+                                        [];
+                                }
 
                                 saveData();
 
@@ -2091,7 +3204,7 @@
                                 );
                             }
 
-                        } catch (error) {
+                        } catch(error) {
 
                             alert(
                                 "Erro ao ler o arquivo JSON."
@@ -2100,6 +3213,7 @@
                     };
             }
         }
+
 
         function exitApp() {
 
@@ -2111,20 +3225,25 @@
 
                 window.close();
 
-                setTimeout(() => {
+                setTimeout(
+                    () => {
 
-                    alert(
-                        "Se o navegador não fechou automaticamente por razões de segurança, você pode fechar esta aba com tranquilidade."
-                    );
+                        alert(
+                            "Se o navegador não fechou automaticamente por razões de segurança, você pode fechar esta aba com tranquilidade."
+                        );
 
-                }, 300);
+                    },
+                    300
+                );
             }
         }
+
 
         /*
          * Mostra/oculta as configurações de
          * atendimento múltiplo.
          */
+
         document.addEventListener(
             'DOMContentLoaded',
             () => {
@@ -2152,13 +3271,19 @@
             }
         );
 
+
         /*
          * Segurança para exibição de texto
          * inserido pelo usuário.
          */
-        function escapeHTML(text) {
 
-            return String(text || '')
+        function escapeHTML(
+            text
+        ) {
+
+            return String(
+                text || ''
+            )
                 .replace(
                     /&/g,
                     '&amp;'
@@ -2181,9 +3306,14 @@
                 );
         }
 
-        function escapeJS(text) {
 
-            return String(text || '')
+        function escapeJS(
+            text
+        ) {
+
+            return String(
+                text || ''
+            )
                 .replace(
                     /\\/g,
                     '\\\\'
@@ -2202,7 +3332,11 @@
                 );
         }
 
-        window.onload = initApp;
+
+        window.onload =
+            initApp;
+
     </script>
+
 </body>
 </html>
